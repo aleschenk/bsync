@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <template id="li_template">
+      <li>
+        <a>
+          <h3 class="title">BSync</h3>
+          <p class="pathname">Tab Pathname</p>
+        </a>
+      </li>
+    </template>
+
+    <h1>BSync</h1>
+    Server: <input id="server" type="text" value="127.0.0.1:5567" />
+    <button id="syncButton">Sync</button>
+    <input id="autoSyncCheck" type="checkbox">Automatic Sync</input>
+    <!-- <button id="settingsButton">Settings</button> -->
+    <ul></ul>
+
+    <script src="./popup.js" type="module"></script>
+  </body>
+</html>
