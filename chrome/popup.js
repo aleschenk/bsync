@@ -3,7 +3,7 @@ console.log("This is a popup!")
 const syncButton = document.getElementById("syncButton");
 // const autoSyncCheck = document.getElementById("autoSyncCheck")
 
-const sync = async (tabs) => {
+const saveTabs = async (tabs) => {
     const host = document.getElementById("host");
 
     fetch(host, {
