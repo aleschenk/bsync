@@ -3,22 +3,11 @@ package main
 import (
 	"time"
 
+	"bsync.com/m/v2/storage"
 	"github.com/genjidb/genji"
 )
 
 var gdb *genji.DB
-
-type Account struct {
-	ID        string `genji:"id"`
-	CreatedAt string `genji:"created_at"`
-}
-
-type Session struct {
-	AccountID  string `genji:"account_id"`
-	SessionID  string `genji:"session_id"`
-	CreatedAt  string `genji:"created_at"`
-	ModifiedAt string `genji:"modified_at"`
-}
 
 func CloseDatabase() {
 	gdb.Close()
@@ -66,7 +55,7 @@ func InitDatabase(path string) {
 func CreateNewAccount(ID string) error {
 	createdAt := time.Now().Format(time.RFC3339)
 
-	account := Account{
+	account := storage.Account{
 		ID:        ID,
 		CreatedAt: createdAt,
 	}
@@ -78,7 +67,20 @@ func CreateNewAccount(ID string) error {
 	return nil
 }
 
-func SaveSession(accountID, sessionID, tabs string) error {
+func GetSession(accountID, sessionID string) (*storage.Session, error) {
+	doc, err := gdb.QueryDocument("SELECT * FROM sessions WHERE account_id = ? AND session_id = ?", accountID, sessionID)
+	if genji.IsNotFoundError(err) {
+		return nil, nil
+	}
+
+	doc.MarshalJSON()
+	// Iterate(fn func(field string, value Value) error) error
+	// GetByField(field string) (Value, error)
+	// MarshalJSON() ([]byte, error)
+	return nil, nil
+}
+
+func SaveSession(accountID, sessionID string, tabs []storage.Tab) error {
 	_, err := gdb.QueryDocument("SELECT * FROM sessions WHERE account_id = ? AND session_id = ?", accountID, sessionID)
 
 	if genji.IsNotFoundError(err) {
@@ -89,20 +91,21 @@ func SaveSession(accountID, sessionID, tabs string) error {
 	return updateSession(accountID, sessionID, tabs)
 }
 
-func createNewSession(accountID, sessionID string, tabs string) error {
+func createNewSession(accountID, sessionID string, tabs []storage.Tab) error {
 	createdAt := time.Now().Format(time.RFC3339)
 
-	session := Session{
+	session := storage.Session{
 		AccountID:  accountID,
 		SessionID:  sessionID,
 		CreatedAt:  createdAt,
 		ModifiedAt: createdAt,
+		Tabs:       []storage.Tab{},
 	}
 
 	return gdb.Exec(`INSERT INTO sessions VALUES ?`, &session)
 }
 
-func updateSession(accountID, sessionID string, tabs string) error {
+func updateSession(accountID, sessionID string, tabs []storage.Tab) error {
 	modifiedAt := time.Now().Format(time.RFC3339)
 
 	return gdb.Exec(`

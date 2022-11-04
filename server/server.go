@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"net/http"
 
+	"bsync.com/m/v2/storage"
 	"github.com/gin-gonic/gin"
 )
+
+var store storage.FileSystemStorage
 
 func newAccount(c *gin.Context) {
 	accountId := c.PostForm("id")
 
-	if err := CreateNewAccount(accountId); err != nil {
+	if err := store.CreateNewAccount(accountId); err != nil {
 		c.String(http.StatusInternalServerError, "The account could not be created")
 		return
 	}
@@ -24,13 +27,31 @@ func saveSession(c *gin.Context) {
 	accountId := c.Param("accountId")
 	sessionId := c.Param("sessionId")
 
-	if err := SaveSession(accountId, sessionId, ""); err != nil {
+	var tabs []storage.Tab
+
+	if err := store.SaveSession(accountId, sessionId, tabs); err != nil {
 		c.String(http.StatusInternalServerError, "The sessions %s for the account %s could not be created or updated", sessionId, accountId)
 		return
 	}
 
 	c.Header("Location", fmt.Sprintf("/accounts/%s/sessions/%s", accountId, sessionId))
 	c.String(http.StatusCreated, "", accountId)
+	// c.Copy().FileFromFS("")
+}
+
+func getSession(c *gin.Context) {
+	accountId := c.Param("accountId")
+	sessionId := c.Param("sessionId")
+
+	session, err := store.GetSession(accountId, sessionId)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "The sessions %s for the account %s could not be created or updated", sessionId, accountId)
+		return
+	}
+
+	c.Header("Location", fmt.Sprintf("/accounts/%s/sessions/%s", accountId, sessionId))
+	c.String(http.StatusCreated, "", accountId)
+	c.JSON(http.StatusOK, session.Tabs)
 }
 
 func main() {
@@ -51,6 +72,7 @@ func main() {
 
 	router.POST("/accounts", newAccount)
 	router.POST("/accounts/:accountId/sessions/:sessionId", saveSession)
+	router.GET("/accounts/:accountId/sessions/:sessionId", getSession)
 
 	router.Run(serverAddr)
 }
