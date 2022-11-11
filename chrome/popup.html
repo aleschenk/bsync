@@ -17,11 +17,16 @@
     </template>
 
     <h1>BSync</h1>
-    Server: <input id="server" type="text" value="127.0.0.1:2544" />
-    Account: <input id="account" type="text" value="" />
-    Session: <input id="account" type="text" value="" />
-    <button id="uploadTabs">Upload Tabs</button>
-    <button id="getTabs">Get Tabs</button>
+
+    <form>
+      <p><label>Server: <input id="hostText" type="text" value="http://127.0.0.1:2544" /></label></p>
+      <p><label>Account: <input id="accountIdText" type="text" value="aleschenk" /></label></p>
+      <p><label>Session: <input id="sessionIdText" type="text" value="default" /></label></p>
+      <p><label>Restore session in a new window<input id="sessionIdText" type="checkbox" value="true" /></label></p>
+    </form>
+
+    <button id="saveSessionButton">Save Tabs</button>
+    <button id="getSessionButton">Get Tabs</button>
     <!-- <button id="syncButton">Sync</button>
     <input id="autoSyncCheck" type="checkbox">Automatic Sync</input> -->
     <!-- <button id="settingsButton">Settings</button> -->

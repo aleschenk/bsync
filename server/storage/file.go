@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -27,7 +28,26 @@ func (fss *FileSystemStorage) CreateNewAccount(ID string) error {
 }
 
 func sessionFilename(accountID, sessionID string) string {
+	// createAt := time.Now().Format(time.RFC3339)
 	return fmt.Sprintf("%s/accounts/%s/session_%s", rootPath, accountID, sessionID)
+}
+
+func (fss *FileSystemStorage) GetAllSessions(accountID, sessionID string) ([]string, error) {
+	sessions := []string{""}
+
+	accountPath := fmt.Sprintf("%s/accounts/%s", rootPath, accountID)
+
+	err := filepath.Walk(accountPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(path)
+		sessions = append(sessions, path)
+		return nil
+	})
+
+	return sessions, err
 }
 
 func (fss *FileSystemStorage) GetSession(accountID, sessionID string) (*Session, error) {

@@ -17,6 +17,7 @@ type Session struct {
 
 type Storage interface {
 	CreateNewAccount(ID string) error
+	GetAllSessions(accountID, sessionID string) ([]string, error)
 	GetSession(accountID, sessionID string) (*Session, error)
 	SaveSession(accountID, sessionID string, tabs []Tab) error
 }

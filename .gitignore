@@ -1,3 +1,6 @@
 .mod
 .sum
 .psc-ide-port
+.db
+.storage
+__debug_bin
