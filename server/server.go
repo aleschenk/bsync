@@ -76,7 +76,7 @@ func getSession(c *gin.Context) {
 	c.JSON(http.StatusOK, session.Tabs)
 }
 
-func main() {
+func StartServer() {
 	var serverAddr, databasePath string
 
 	flag.StringVar(&serverAddr, "serverAddr", ":2544", "The port number")
