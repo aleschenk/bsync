@@ -8,6 +8,19 @@
       "default_icon": "default_icon.png"
     },
     "permissions": [
-        "tabs", "tabGroups"
-    ]
-  }
+        "tabs", 
+        "tabGroups",
+        "identity",
+        "windows",
+        "storage"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "oauth2": {
+        "client_id": "286185816026-19nn4lfgm3prmpjm9lm49004abdd8bum.apps.googleusercontent.com",
+        "scopes": [
+            "https://www.googleapis.com/auth/drive.file"
+        ]
+    }
+}

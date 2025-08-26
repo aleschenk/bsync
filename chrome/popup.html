@@ -7,30 +7,142 @@
     <link rel="stylesheet" href="./popup.css" />
   </head>
   <body>
-    <template id="li_template">
-      <li>
-        <a>
-          <h3 class="title">BSync</h3>
-          <p class="pathname">Tab Pathname</p>
-        </a>
-      </li>
-    </template>
+    <div class="container">
+      <header class="header">
+        <div class="logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h1>BSync</h1>
+        </div>
+        <p class="subtitle">Sincroniza tus pestañas entre dispositivos</p>
+      </header>
 
-    <h1>BSync</h1>
+      <main class="main">
+        <div class="status-indicator" id="statusIndicator">
+          <div class="status-dot"></div>
+          <span class="status-text">Conectando...</span>
+        </div>
 
-    <form>
-      <p><label>Server: <input id="hostText" type="text" value="http://127.0.0.1:2544" /></label></p>
-      <p><label>Account: <input id="accountIdText" type="text" value="aleschenk" /></label></p>
-      <p><label>Session: <input id="sessionIdText" type="text" value="default" /></label></p>
-      <p><label>Restore session in a new window<input id="sessionIdText" type="checkbox" value="true" /></label></p>
-    </form>
+        <!-- Session Management -->
+        <div class="session-section">
+          <div class="session-header">
+            <h3>📁 Sesión</h3>
+            <button class="btn-icon" id="newSessionButton" title="Nueva sesión">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="session-selector">
+            <select id="sessionSelect" class="session-select">
+              <option value="default">Sesión Principal</option>
+            </select>
+            <button class="btn-icon btn-danger" id="deleteSessionButton" title="Eliminar sesión">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
 
-    <button id="saveSessionButton">Save Tabs</button>
-    <button id="getSessionButton">Get Tabs</button>
-    <!-- <button id="syncButton">Sync</button>
-    <input id="autoSyncCheck" type="checkbox">Automatic Sync</input> -->
-    <!-- <button id="settingsButton">Settings</button> -->
+          <!-- Auto Sync Toggle -->
+          <div class="auto-sync-section">
+            <div class="toggle-container">
+              <label class="toggle-label">
+                <input type="checkbox" id="autoSyncToggle" class="toggle-input">
+                <span class="toggle-slider"></span>
+              </label>
+              <div class="toggle-text">
+                <span class="toggle-title">Sincronización Automática</span>
+                <span class="toggle-description">Guarda automáticamente cuando cambies pestañas</span>
+              </div>
+            </div>
+            <div class="sync-status" id="syncStatus">
+              <span class="sync-indicator"></span>
+              <span class="sync-text">Última sincronización: Nunca</span>
+            </div>
+          </div>
+        </div>
 
+        <div class="buttons-container">
+          <button class="btn btn-primary" id="saveToDriveButton">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Guardar Pestañas
+          </button>
+
+          <button class="btn btn-secondary" id="loadFromDriveButton">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Cargar Pestañas
+          </button>
+
+          <button class="btn btn-outline" id="testDriveButton">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22 11.08V12C21.9988 14.1564 21.3005 16.2547 20.0093 17.9818C18.7182 19.7088 16.9033 20.9725 14.8354 21.5839C12.7674 22.1953 10.5573 22.1219 8.53447 21.3746C6.51168 20.6273 4.78465 19.2461 3.61096 17.4371C2.43727 15.628 1.87979 13.4881 2.02168 11.3363C2.16356 9.18455 2.99721 7.13631 4.39828 5.49706C5.79935 3.85781 7.69279 2.71537 9.79619 2.24013C11.8996 1.76488 14.1003 1.98232 16.07 2.85999" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22 4L12 14.01L9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Probar Conexión
+          </button>
+        </div>
+
+        <div class="info-section">
+          <div class="info-card">
+            <h3>📊 Estadísticas</h3>
+            <div class="stats">
+              <div class="stat">
+                <span class="stat-number" id="tabsCount">0</span>
+                <span class="stat-label">Pestañas abiertas</span>
+              </div>
+              <div class="stat">
+                <span class="stat-number" id="groupsCount">0</span>
+                <span class="stat-label">Grupos</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer class="footer">
+        <p>Powered by Google Drive</p>
+      </footer>
+    </div>
+
+    <!-- Modal for new session -->
+    <div id="newSessionModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Nueva Sesión</h3>
+          <button class="btn-icon" id="closeModalButton">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <label for="sessionNameInput">Nombre de la sesión:</label>
+          <input type="text" id="sessionNameInput" placeholder="Ej: Trabajo, Personal, Proyecto X" />
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" id="cancelNewSessionButton">Cancelar</button>
+          <button class="btn btn-primary" id="createSessionButton">Crear Sesión</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="./google-drive.js"></script>
     <script src="./popup.js" type="module"></script>
   </body>
 </html>
