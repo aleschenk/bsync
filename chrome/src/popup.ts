@@ -1,11 +1,20 @@
-// Main Popup Controller - Refactored Version
-import { SessionManager } from './modules/session-manager.js';
-import { OptionsManager } from './modules/options-manager.js';
-import { TabManager } from './modules/tab-manager.js';
-import { UIManager } from './modules/ui-manager.js';
-import { StorageManager } from './modules/storage-manager.js';
+// Main Popup Controller - TypeScript Version
+import { SessionManager } from './modules/session-manager';
+import { OptionsManager } from './modules/options-manager';
+import { TabManager } from './modules/tab-manager';
+import { UIManager } from './modules/ui-manager';
+import { StorageManager } from './modules/storage-manager';
+import { StorageType, Options } from './types';
+
+// GoogleDriveAPI está declarado globalmente en global.d.ts
 
 class PopupController {
+    private storageManager: StorageManager;
+    private ui: UIManager;
+    private optionsManager: OptionsManager;
+    private sessionManager: SessionManager;
+    private tabManager: TabManager;
+    
     constructor() {
         this.storageManager = new StorageManager();
         this.ui = new UIManager();
@@ -16,13 +25,13 @@ class PopupController {
         this.initialize();
     }
 
-    async initialize() {
+    private async initialize(): Promise<void> {
         await this.loadData();
         await this.setupEventListeners();
         await this.updateUI();
     }
 
-    async loadData() {
+    private async loadData(): Promise<void> {
         await this.optionsManager.loadOptions();
         
         // Configurar el storage manager con las opciones
@@ -34,7 +43,7 @@ class PopupController {
         await this.sessionManager.loadSessions();
     }
 
-    async updateUI() {
+    private async updateUI(): Promise<void> {
         // Update stats
         const stats = await this.tabManager.getStats();
         this.ui.updateStats(stats);
@@ -55,7 +64,7 @@ class PopupController {
         await this.checkConnection();
     }
 
-    async loadAutoSyncStatus() {
+    private async loadAutoSyncStatus(): Promise<void> {
         try {
             const response = await chrome.runtime.sendMessage({ action: 'getAutoSyncStatus' });
             this.ui.updateAutoSyncUI(response.enabled);
@@ -65,7 +74,7 @@ class PopupController {
         }
     }
 
-    async checkConnection() {
+    private async checkConnection(): Promise<void> {
         try {
             this.ui.updateConnectionStatus('', 'Verificando conexión...');
             
@@ -82,57 +91,58 @@ class PopupController {
         }
     }
 
-    setupEventListeners() {
+    private setupEventListeners(): void {
         // Session management
-        this.ui.sessionSelect.addEventListener('change', (e) => this.handleSessionChange(e));
-        this.ui.newSessionButton.addEventListener('click', () => this.ui.showModal());
-        this.ui.deleteSessionButton.addEventListener('click', () => this.handleDeleteSession());
-        this.ui.createSessionButton.addEventListener('click', () => this.handleCreateSession());
-        this.ui.cancelNewSessionButton.addEventListener('click', () => this.ui.hideModal());
-        this.ui.closeModalButton.addEventListener('click', () => this.ui.hideModal());
+        this.ui.elements.sessionSelect.addEventListener('change', (e) => this.handleSessionChange(e));
+        this.ui.elements.newSessionButton.addEventListener('click', () => this.ui.showModal());
+        this.ui.elements.deleteSessionButton.addEventListener('click', () => this.handleDeleteSession());
+        this.ui.elements.createSessionButton.addEventListener('click', () => this.handleCreateSession());
+        this.ui.elements.cancelNewSessionButton.addEventListener('click', () => this.ui.hideModal());
+        this.ui.elements.closeModalButton.addEventListener('click', () => this.ui.hideModal());
 
         // Modal outside click
-        this.ui.newSessionModal.addEventListener('click', (e) => {
-            if (e.target === this.ui.newSessionModal) {
+        this.ui.elements.newSessionModal.addEventListener('click', (e) => {
+            if (e.target === this.ui.elements.newSessionModal) {
                 this.ui.hideModal();
             }
         });
 
         // Options
-        this.ui.expandOptionsButton.addEventListener('click', () => this.ui.toggleOptionsExpansion());
-        this.ui.newWindowToggle.addEventListener('change', (e) => this.handleOptionChange('newWindow', e.target.checked));
-        this.ui.closeExistingToggle.addEventListener('change', (e) => this.handleOptionChange('closeExisting', e.target.checked));
-        this.ui.preserveGroupsToggle.addEventListener('change', (e) => this.handleOptionChange('preserveGroups', e.target.checked));
+        this.ui.elements.expandOptionsButton.addEventListener('click', () => this.ui.toggleOptionsExpansion());
+        this.ui.elements.newWindowToggle.addEventListener('change', (e) => this.handleOptionChange('newWindow', (e.target as HTMLInputElement).checked));
+        this.ui.elements.closeExistingToggle.addEventListener('change', (e) => this.handleOptionChange('closeExisting', (e.target as HTMLInputElement).checked));
+        this.ui.elements.preserveGroupsToggle.addEventListener('change', (e) => this.handleOptionChange('preserveGroups', (e.target as HTMLInputElement).checked));
         
         // Storage options
-        if (this.ui.storageTypeSelect) {
-            this.ui.storageTypeSelect.addEventListener('change', (e) => this.handleStorageTypeChange(e));
+        if (this.ui.elements.storageTypeSelect) {
+            this.ui.elements.storageTypeSelect.addEventListener('change', (e) => this.handleStorageTypeChange(e));
         }
-        if (this.ui.bsyncServerUrlInput) {
-            this.ui.bsyncServerUrlInput.addEventListener('change', (e) => this.handleOptionChange('bsyncServerUrl', e.target.value));
+        if (this.ui.elements.bsyncServerUrlInput) {
+            this.ui.elements.bsyncServerUrlInput.addEventListener('change', (e) => this.handleOptionChange('bsyncServerUrl', (e.target as HTMLInputElement).value));
         }
-        if (this.ui.accountIdInput) {
-            this.ui.accountIdInput.addEventListener('change', (e) => this.handleOptionChange('accountId', e.target.value));
+        if (this.ui.elements.accountIdInput) {
+            this.ui.elements.accountIdInput.addEventListener('change', (e) => this.handleOptionChange('accountId', (e.target as HTMLInputElement).value));
         }
 
         // Auto sync
-        this.ui.autoSyncToggle.addEventListener('change', (e) => this.handleAutoSyncToggle(e));
+        this.ui.elements.autoSyncToggle.addEventListener('change', (e) => this.handleAutoSyncToggle(e));
 
         // Main actions
-        this.ui.saveToDriveButton.addEventListener('click', () => this.handleSaveTabs());
-        this.ui.loadFromDriveButton.addEventListener('click', () => this.handleLoadTabs());
-        this.ui.testDriveButton.addEventListener('click', () => this.handleTestConnection());
+        this.ui.elements.saveToDriveButton.addEventListener('click', () => this.handleSaveTabs());
+        this.ui.elements.loadFromDriveButton.addEventListener('click', () => this.handleLoadTabs());
+        this.ui.elements.testDriveButton.addEventListener('click', () => this.handleTestConnection());
 
         // Auto sync messages from background
-        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
             if (message.action === 'autoSync') {
                 this.handleAutoSync(message.data);
             }
         });
     }
 
-    async handleSessionChange(e) {
-        const sessionName = e.target.value;
+    private async handleSessionChange(e: Event): Promise<void> {
+        const target = e.target as HTMLSelectElement;
+        const sessionName = target.value;
         await this.sessionManager.setCurrentSession(sessionName);
         this.ui.updateSessionSelect(
             this.sessionManager.getSessions(),
@@ -141,8 +151,8 @@ class PopupController {
         this.ui.showMessage(`Cambiado a sesión: ${sessionName === 'default' ? 'Principal' : sessionName}`);
     }
 
-    async handleCreateSession() {
-        const sessionName = this.ui.sessionNameInput.value.trim();
+    private async handleCreateSession(): Promise<void> {
+        const sessionName = this.ui.elements.sessionNameInput.value.trim();
         if (!sessionName) {
             this.ui.showMessage('Por favor ingresa un nombre para la sesión', 'error');
             return;
@@ -161,7 +171,7 @@ class PopupController {
         }
     }
 
-    async handleDeleteSession() {
+    private async handleDeleteSession(): Promise<void> {
         const currentSession = this.sessionManager.getCurrentSession();
         if (currentSession === 'default') return;
 
@@ -179,9 +189,9 @@ class PopupController {
         }
     }
 
-    async handleOptionChange(key, value) {
+    private async handleOptionChange<K extends keyof Options>(key: K, value: Options[K]): Promise<void> {
         await this.optionsManager.updateOption(key, value);
-        const optionNames = {
+        const optionNames: Record<string, string> = {
             newWindow: 'Nueva ventana',
             closeExisting: 'Cerrar pestañas existentes',
             preserveGroups: 'Preservar grupos',
@@ -193,8 +203,9 @@ class PopupController {
         }
     }
 
-    async handleStorageTypeChange(e) {
-        const storageType = e.target.value;
+    private async handleStorageTypeChange(e: Event): Promise<void> {
+        const target = e.target as HTMLSelectElement;
+        const storageType = target.value as StorageType;
         await this.optionsManager.updateOption('storageType', storageType);
         
         // Actualizar el storage manager
@@ -214,8 +225,9 @@ class PopupController {
         this.ui.showMessage(`Almacenamiento cambiado a: ${storageName}`);
     }
 
-    async handleAutoSyncToggle(e) {
-        const enabled = e.target.checked;
+    private async handleAutoSyncToggle(e: Event): Promise<void> {
+        const target = e.target as HTMLInputElement;
+        const enabled = target.checked;
         
         try {
             await chrome.runtime.sendMessage({ 
@@ -233,12 +245,12 @@ class PopupController {
         } catch (error) {
             console.error('Error setting auto sync:', error);
             this.ui.showMessage('Error al cambiar sincronización automática', 'error');
-            e.target.checked = !enabled; // Revert the toggle
+            target.checked = !enabled; // Revert the toggle
         }
     }
 
-    async handleTestConnection() {
-        this.ui.setButtonLoading(this.ui.testDriveButton, true);
+    private async handleTestConnection(): Promise<void> {
+        this.ui.setButtonLoading(this.ui.elements.testDriveButton, true);
         
         try {
             const authenticated = await this.storageManager.testConnection();
@@ -252,20 +264,20 @@ class PopupController {
                 this.ui.updateConnectionStatus('error', 'Error de conexión');
             }
         } catch (error) {
-            this.ui.showMessage("❌ Error: " + error.message, 'error');
+            this.ui.showMessage("❌ Error: " + (error instanceof Error ? error.message : 'Error desconocido'), 'error');
             this.ui.updateConnectionStatus('error', 'Error de conexión');
         } finally {
-            this.ui.setButtonLoading(this.ui.testDriveButton, false);
+            this.ui.setButtonLoading(this.ui.elements.testDriveButton, false);
         }
     }
 
-    async handleSaveTabs() {
-        this.ui.setButtonLoading(this.ui.saveToDriveButton, true);
+    private async handleSaveTabs(): Promise<void> {
+        this.ui.setButtonLoading(this.ui.elements.saveToDriveButton, true);
         
         try {
             const tabs = await this.tabManager.getTabsData();
             const filename = this.sessionManager.getSessionFilename();
-            await this.storageManager.saveData(filename, tabs);
+            await this.storageManager.saveData(filename, { tabs, timestamp: new Date().toISOString() });
             
             const currentSession = this.sessionManager.getCurrentSession();
             const storageName = this.storageManager.getProviderName();
@@ -276,25 +288,25 @@ class PopupController {
             this.ui.updateStats(stats);
             this.ui.updateSyncStatus(new Date().toISOString());
         } catch (error) {
-            this.ui.showMessage("❌ Error al guardar: " + error.message, 'error');
+            this.ui.showMessage("❌ Error al guardar: " + (error instanceof Error ? error.message : 'Error desconocido'), 'error');
         } finally {
-            this.ui.setButtonLoading(this.ui.saveToDriveButton, false);
+            this.ui.setButtonLoading(this.ui.elements.saveToDriveButton, false);
         }
     }
 
-    async handleLoadTabs() {
-        this.ui.setButtonLoading(this.ui.loadFromDriveButton, true);
+    private async handleLoadTabs(): Promise<void> {
+        this.ui.setButtonLoading(this.ui.elements.loadFromDriveButton, true);
         
         try {
             const filename = this.sessionManager.getSessionFilename();
-            const tabs = await this.storageManager.loadData(filename);
+            const sessionData = await this.storageManager.loadData(filename);
             
             const currentSession = this.sessionManager.getCurrentSession();
             const storageName = this.storageManager.getProviderName();
             this.ui.showMessage(`✅ Pestañas cargadas desde ${storageName} - sesión "${currentSession === 'default' ? 'Principal' : currentSession}"`);
             
             // Restore tabs
-            const result = await this.tabManager.restoreTabs(tabs);
+            const result = await this.tabManager.restoreTabs(sessionData.tabs);
             if (result.success) {
                 this.ui.showMessage(`✅ ${result.message}`);
             } else {
@@ -305,13 +317,13 @@ class PopupController {
             const stats = await this.tabManager.getStats();
             this.ui.updateStats(stats);
         } catch (error) {
-            this.ui.showMessage("❌ Error al cargar: " + error.message, 'error');
+            this.ui.showMessage("❌ Error al cargar: " + (error instanceof Error ? error.message : 'Error desconocido'), 'error');
         } finally {
-            this.ui.setButtonLoading(this.ui.loadFromDriveButton, false);
+            this.ui.setButtonLoading(this.ui.elements.loadFromDriveButton, false);
         }
     }
 
-    async handleAutoSync(data) {
+    private async handleAutoSync(data: any): Promise<void> {
         try {
             this.ui.setSyncIndicatorStatus('syncing');
             

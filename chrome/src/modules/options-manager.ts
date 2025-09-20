@@ -1,47 +1,47 @@
 // Options Manager Module
+import { Options, StorageType } from '../types';
+
 export class OptionsManager {
+    private options: Options;
+
     constructor() {
         this.options = {
             newWindow: false,
             closeExisting: false,
             preserveGroups: true,
-            storageType: 'google-drive', // 'google-drive' o 'bsync-server'
+            storageType: 'google-drive' as StorageType,
             bsyncServerUrl: 'http://localhost:2544',
             accountId: 'default-user'
         };
     }
 
-    async loadOptions() {
+    async loadOptions(): Promise<void> {
         try {
             const result = await chrome.storage.local.get(['options']);
-            this.options = { ...this.options, ...result.options };
-            return this.options;
+            this.options = { ...this.options, ...result['options'] };
         } catch (error) {
             console.error('Error loading options:', error);
-            return this.options;
         }
     }
 
-    async saveOptions() {
+    async saveOptions(): Promise<void> {
         try {
             await chrome.storage.local.set({ options: this.options });
-            return true;
         } catch (error) {
             console.error('Error saving options:', error);
-            return false;
         }
     }
 
-    async updateOption(key, value) {
+    async updateOption<K extends keyof Options>(key: K, value: Options[K]): Promise<void> {
         this.options[key] = value;
-        return this.saveOptions();
+        await this.saveOptions();
     }
 
-    getOptions() {
-        return this.options;
+    getOptions(): Options {
+        return { ...this.options };
     }
 
-    getOption(key) {
+    getOption<K extends keyof Options>(key: K): Options[K] {
         return this.options[key];
     }
 }

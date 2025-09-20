@@ -41,6 +41,11 @@ export class UIManager {
         this.newWindowToggle = document.getElementById('newWindowToggle');
         this.closeExistingToggle = document.getElementById('closeExistingToggle');
         this.preserveGroupsToggle = document.getElementById('preserveGroupsToggle');
+        
+        // Storage elements
+        this.storageTypeSelect = document.getElementById('storageTypeSelect');
+        this.bsyncServerUrlInput = document.getElementById('bsyncServerUrlInput');
+        this.accountIdInput = document.getElementById('accountIdInput');
     }
 
     updateStats(stats) {
@@ -96,6 +101,20 @@ export class UIManager {
         this.newWindowToggle.checked = options.newWindow;
         this.closeExistingToggle.checked = options.closeExisting;
         this.preserveGroupsToggle.checked = options.preserveGroups;
+        
+        // Update storage options
+        if (this.storageTypeSelect) {
+            this.storageTypeSelect.value = options.storageType || 'google-drive';
+        }
+        if (this.bsyncServerUrlInput) {
+            this.bsyncServerUrlInput.value = options.bsyncServerUrl || 'http://localhost:2544';
+        }
+        if (this.accountIdInput) {
+            this.accountIdInput.value = options.accountId || 'default-user';
+        }
+        
+        // Show/hide BSync server options based on storage type
+        this.toggleBSyncOptions(options.storageType === 'bsync-server');
     }
 
     updateAutoSyncUI(enabled) {
@@ -148,5 +167,12 @@ export class UIManager {
 
     setSyncIndicatorStatus(status) {
         this.syncIndicator.className = `sync-indicator ${status}`;
+    }
+    
+    toggleBSyncOptions(show) {
+        const bsyncOptions = document.querySelector('.bsync-options');
+        if (bsyncOptions) {
+            bsyncOptions.style.display = show ? 'block' : 'none';
+        }
     }
 }

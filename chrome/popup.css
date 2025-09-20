@@ -604,6 +604,75 @@ body {
   }
 }
 
+/* Storage Options */
+.option-header {
+  margin-bottom: 8px;
+}
+
+.option-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  display: block;
+}
+
+.option-description {
+  font-size: 11px;
+  color: #666;
+  display: block;
+  margin-top: 2px;
+}
+
+.storage-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+  color: #333;
+  margin-top: 8px;
+}
+
+.storage-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.bsync-options {
+  margin-top: 12px;
+  padding: 12px;
+  background: #e3f2fd;
+  border-radius: 6px;
+  border: 1px solid #bbdefb;
+}
+
+.bsync-options label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1976d2;
+  margin-bottom: 4px;
+}
+
+.bsync-options input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #90caf9;
+  border-radius: 4px;
+  font-size: 12px;
+  background: white;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.bsync-options input:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
 /* Responsive */
 @media (max-width: 400px) {
   .container {

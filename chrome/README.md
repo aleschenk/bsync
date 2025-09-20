@@ -1,22 +1,38 @@
-# BSync Chrome Extension - Código Refactorizado
+# BSync Chrome Extension - TypeScript Version
 
 ## Estructura del Proyecto
 
 ```
 bsync/chrome/
-├── popup.html                 # Interfaz principal
-├── popup.css                  # Estilos CSS
-├── popup.js                   # Controlador principal (refactorizado)
-├── google-drive.js            # API de Google Drive
-├── background.js              # Script de fondo para auto-sync
-├── manifest.json              # Configuración de la extensión
-├── default_icon.png           # Icono de la extensión
-├── README.md                  # Documentación
-└── modules/                   # Módulos separados
-    ├── session-manager.js     # Gestión de sesiones
-    ├── options-manager.js     # Gestión de opciones
-    ├── tab-manager.js         # Gestión de pestañas
-    └── ui-manager.js          # Gestión de interfaz
+├── src/                       # Código fuente TypeScript
+│   ├── popup.ts              # Controlador principal
+│   ├── background.ts         # Script de fondo para auto-sync
+│   ├── global.d.ts           # Declaraciones globales
+│   ├── types/                # Definiciones de tipos
+│   │   ├── index.ts          # Exportaciones de tipos
+│   │   ├── storage.ts        # Tipos de almacenamiento
+│   │   ├── tab.ts            # Tipos de pestañas
+│   │   └── options.ts        # Tipos de opciones
+│   └── modules/              # Módulos separados
+│       ├── session-manager.ts    # Gestión de sesiones
+│       ├── options-manager.ts    # Gestión de opciones
+│       ├── tab-manager.ts        # Gestión de pestañas
+│       ├── ui-manager.ts         # Gestión de interfaz
+│       ├── storage-manager.ts    # Gestión de almacenamiento (Strategy Pattern)
+│       └── storage-providers/    # Proveedores de almacenamiento
+│           ├── base-storage-provider.ts    # Interfaz base
+│           ├── google-drive-provider.ts    # Implementación Google Drive
+│           └── bsync-server-provider.ts    # Implementación Servidor BSync
+├── dist/                     # Código JavaScript compilado
+├── popup.html                # Interfaz principal
+├── popup.css                 # Estilos CSS
+├── google-drive.js           # API de Google Drive
+├── manifest.json             # Configuración de la extensión
+├── default_icon.png          # Icono de la extensión
+├── package.json              # Dependencias y scripts
+├── tsconfig.json             # Configuración de TypeScript
+├── start-dev.sh              # Script de desarrollo
+└── README.md                 # Documentación
 ```
 
 ## Arquitectura Modular
@@ -56,6 +72,20 @@ bsync/chrome/
   - Manejar estados de carga
   - Mostrar mensajes
 
+### 6. **StorageManager** (`modules/storage-manager.js`)
+- **Responsabilidad**: Gestión de almacenamiento usando Strategy Pattern
+- **Funciones**:
+  - Delegar operaciones al proveedor actual
+  - Cambiar entre proveedores dinámicamente
+  - Configurar proveedores específicos
+  - API unificada para todos los proveedores
+
+### 7. **Storage Providers** (`modules/storage-providers/`)
+- **BaseStorageProvider**: Interfaz base que define el contrato
+- **GoogleDriveProvider**: Implementación para Google Drive
+- **BSyncServerProvider**: Implementación para Servidor BSync
+- **Patrón Strategy**: Cada proveedor encapsula su lógica específica
+
 ## Ventajas de la Refactorización
 
 ### ✅ **Separación de Responsabilidades**
@@ -78,28 +108,125 @@ bsync/chrome/
 - Fácil agregar nuevos módulos
 - Estructura preparada para crecimiento
 
+### ✅ **Strategy Pattern Benefits**
+- **Extensibilidad**: Agregar nuevos proveedores sin modificar código existente
+- **Mantenibilidad**: Cada proveedor es independiente y fácil de mantener
+- **Testabilidad**: Cada proveedor puede ser probado por separado
+- **Flexibilidad**: Cambiar entre proveedores en tiempo de ejecución
+- **Principio Abierto/Cerrado**: Abierto para extensión, cerrado para modificación
+
+## Opciones de Almacenamiento
+
+### 🗂️ **Google Drive** (Por defecto)
+- **Ventajas**: Acceso desde cualquier dispositivo, sincronización automática
+- **Configuración**: Requiere autenticación OAuth2
+- **Uso**: Ideal para uso personal y sincronización entre dispositivos
+
+### 🖥️ **Servidor BSync**
+- **Ventajas**: Control total, sin límites de API, ideal para equipos
+- **Configuración**: URL del servidor y ID de cuenta
+- **Uso**: Ideal para uso empresarial o cuando se necesita control total
+
+### ⚙️ **Configuración**
+1. **Acceder a opciones**: Expandir la sección "⚙️ Opciones"
+2. **Seleccionar tipo**: Elegir entre "Google Drive" o "Servidor BSync"
+3. **Configurar servidor** (solo para BSync):
+   - URL del servidor: `http://localhost:2544`
+   - ID de cuenta: `default-user`
+
+## Desarrollo con TypeScript
+
+### 🚀 **Inicio Rápido**
+```bash
+# Instalar dependencias
+npm install
+
+# Iniciar desarrollo (compilación automática)
+./start-dev.sh
+
+# O manualmente:
+npm run dev
+```
+
+### 🔧 **Scripts Disponibles**
+```bash
+npm run dev          # Compilación en modo watch
+npm run build        # Compilación única
+npm run clean        # Limpiar archivos compilados
+npm run type-check   # Verificar tipos sin compilar
+```
+
+### 📝 **Flujo de Desarrollo**
+1. **Editar código TypeScript** en `src/`
+2. **TypeScript compila automáticamente** a `dist/`
+3. **Recargar extensión** en Chrome
+4. **¡Listo!** 🎉
+
+### 🎯 **Ventajas de TypeScript**
+- **Tipado estático**: Detecta errores en tiempo de compilación
+- **IntelliSense**: Autocompletado mejorado
+- **Refactoring seguro**: Cambios de código más seguros
+- **Interfaces explícitas**: Contratos claros entre módulos
+- **Mejor mantenibilidad**: Código autodocumentado
+
 ## Cómo Usar
 
 ### Para Desarrollo
-1. **Editar módulos específicos**: Cada funcionalidad está en su propio archivo
+1. **Editar módulos específicos**: Cada funcionalidad está en su propio archivo TypeScript
 2. **Agregar nuevas funcionalidades**: Crear nuevos módulos siguiendo el patrón
 3. **Modificar UI**: Solo editar `UIManager` y CSS
+4. **Tipos seguros**: TypeScript te ayudará con autocompletado y detección de errores
 
 ### Para Extensión
-1. **Nuevo módulo**: Crear archivo en `modules/`
-2. **Importar**: Agregar import en `popup.js`
-3. **Integrar**: Usar en `PopupController`
+1. **Nuevo módulo**: Crear archivo `.ts` en `src/modules/`
+2. **Definir tipos**: Agregar interfaces en `src/types/`
+3. **Importar**: Agregar import en `popup.ts`
+4. **Integrar**: Usar en `PopupController`
 
-## Patrón de Diseño
+## Patrones de Diseño
+
+### **Strategy Pattern** (Storage Providers)
+```javascript
+// Interfaz base
+class BaseStorageProvider {
+    async saveData(filename, data) {
+        throw new Error('saveData() method must be implemented');
+    }
+}
+
+// Implementaciones específicas
+class GoogleDriveProvider extends BaseStorageProvider {
+    async saveData(filename, data) {
+        return await this.driveAPI.saveToDrive(filename, data);
+    }
+}
+
+class BSyncServerProvider extends BaseStorageProvider {
+    async saveData(sessionId, data) {
+        return await this.saveToBSyncServer(sessionId, data);
+    }
+}
+
+// Contexto que usa la estrategia
+class StorageManager {
+    setStorageType(type) {
+        this.currentProvider = this.providers[type];
+    }
+    
+    async saveData(filename, data) {
+        return await this.currentProvider.saveData(filename, data);
+    }
+}
+```
 
 ### **Dependency Injection**
 ```javascript
 class PopupController {
     constructor() {
-        this.driveAPI = new GoogleDriveAPI();
+        this.storageManager = new StorageManager();
         this.ui = new UIManager();
         this.optionsManager = new OptionsManager();
-        this.sessionManager = new SessionManager(this.driveAPI);
+        this.sessionManager = new SessionManager(this.storageManager);
         this.tabManager = new TabManager(this.optionsManager);
     }
 }

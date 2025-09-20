@@ -1,12 +1,16 @@
 // Session Manager Module
+import { StorageManager } from './storage-manager';
+
 export class SessionManager {
-    constructor(storageManager) {
+    private storageManager: StorageManager;
+    private currentSession: string = 'default';
+    private sessions: string[] = ['default'];
+
+    constructor(storageManager: StorageManager) {
         this.storageManager = storageManager;
-        this.currentSession = 'default';
-        this.sessions = ['default'];
     }
 
-    async loadSessions() {
+    async loadSessions(): Promise<boolean> {
         try {
             if (this.storageManager.getStorageType() === 'google-drive') {
                 const sessionsData = await this.storageManager.loadData('bsync-sessions.json');
@@ -26,7 +30,7 @@ export class SessionManager {
         }
     }
 
-    async saveSessions() {
+    async saveSessions(): Promise<boolean> {
         try {
             await this.storageManager.saveSessions(this.sessions, this.currentSession);
             return true;
@@ -36,7 +40,7 @@ export class SessionManager {
         }
     }
 
-    async createSession(sessionName) {
+    async createSession(sessionName: string): Promise<boolean> {
         if (this.sessions.includes(sessionName)) {
             throw new Error('Session already exists');
         }
@@ -47,7 +51,7 @@ export class SessionManager {
         return true;
     }
 
-    async deleteSession(sessionName) {
+    async deleteSession(sessionName: string): Promise<boolean> {
         if (sessionName === 'default') {
             throw new Error('Cannot delete default session');
         }
@@ -67,20 +71,20 @@ export class SessionManager {
         return true;
     }
 
-    setCurrentSession(sessionName) {
+    setCurrentSession(sessionName: string): Promise<boolean> {
         this.currentSession = sessionName;
         return this.saveSessions();
     }
 
-    getCurrentSession() {
+    getCurrentSession(): string {
         return this.currentSession;
     }
 
-    getSessions() {
-        return this.sessions;
+    getSessions(): string[] {
+        return [...this.sessions];
     }
 
-    getSessionFilename() {
+    getSessionFilename(): string {
         return this.currentSession === 'default' ? 'bsync-tabs.json' : `bsync-tabs-${this.currentSession}.json`;
     }
 }

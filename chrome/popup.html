@@ -119,6 +119,28 @@
                 </div>
               </div>
             </div>
+            
+            <div class="option-item">
+              <div class="option-header">
+                <span class="option-title">💾 Almacenamiento</span>
+                <span class="option-description">Elige dónde guardar tus pestañas</span>
+              </div>
+              <select id="storageTypeSelect" class="storage-select">
+                <option value="google-drive">Google Drive</option>
+                <option value="bsync-server">Servidor BSync</option>
+              </select>
+            </div>
+            
+            <div class="bsync-options" style="display: none;">
+              <div class="option-item">
+                <label for="bsyncServerUrlInput">URL del Servidor:</label>
+                <input type="text" id="bsyncServerUrlInput" placeholder="http://localhost:2544" />
+              </div>
+              <div class="option-item">
+                <label for="accountIdInput">ID de Cuenta:</label>
+                <input type="text" id="accountIdInput" placeholder="default-user" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -196,6 +218,6 @@
     </div>
 
     <script src="./google-drive.js"></script>
-    <script src="./popup.js" type="module"></script>
+    <script src="./dist/popup.js" type="module"></script>
   </body>
 </html>
