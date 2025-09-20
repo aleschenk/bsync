@@ -249,6 +249,60 @@ body {
   background: #dc3545;
 }
 
+/* Options Section */
+.options-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.options-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.options-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #495057;
+  margin: 0;
+}
+
+.options-header .btn-icon {
+  transition: transform 0.3s ease;
+}
+
+.options-header.expanded .btn-icon {
+  transform: rotate(180deg);
+}
+
+.options-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.options-content.expanded {
+  max-height: 300px;
+}
+
+.option-item {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.option-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
 /* Icon buttons */
 .btn-icon {
   display: flex;

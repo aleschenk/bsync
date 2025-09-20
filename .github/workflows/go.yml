@@ -23,6 +23,3 @@ jobs:
 
     - name: Build
       run: go build -C server -v -x -o .bin/server
-
-#    - name: Test
-#      run: go test -v ./.../server

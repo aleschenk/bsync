@@ -69,6 +69,59 @@
           </div>
         </div>
 
+        <!-- Options Section -->
+        <div class="options-section">
+          <div class="options-header">
+            <h3>⚙️ Opciones</h3>
+            <button class="btn-icon" id="expandOptionsButton" title="Expandir opciones">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="options-content" id="optionsContent">
+            <div class="option-item">
+              <div class="toggle-container">
+                <label class="toggle-label">
+                  <input type="checkbox" id="newWindowToggle" class="toggle-input">
+                  <span class="toggle-slider"></span>
+                </label>
+                <div class="toggle-text">
+                  <span class="toggle-title">Nueva Ventana</span>
+                  <span class="toggle-description">Abrir pestañas en una nueva ventana al cargar</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="option-item">
+              <div class="toggle-container">
+                <label class="toggle-label">
+                  <input type="checkbox" id="closeExistingToggle" class="toggle-input">
+                  <span class="toggle-slider"></span>
+                </label>
+                <div class="toggle-text">
+                  <span class="toggle-title">Cerrar Pestañas Existentes</span>
+                  <span class="toggle-description">Cerrar pestañas actuales antes de cargar nuevas</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="option-item">
+              <div class="toggle-container">
+                <label class="toggle-label">
+                  <input type="checkbox" id="preserveGroupsToggle" class="toggle-input">
+                  <span class="toggle-slider"></span>
+                </label>
+                <div class="toggle-text">
+                  <span class="toggle-title">Preservar Grupos</span>
+                  <span class="toggle-description">Mantener la organización de grupos de pestañas</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="buttons-container">
           <button class="btn btn-primary" id="saveToDriveButton">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

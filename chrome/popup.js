@@ -1,483 +1,285 @@
-// Initialize Google Drive API
-const driveAPI = new GoogleDriveAPI();
+// Main Popup Controller - Refactored Version
+import { SessionManager } from './modules/session-manager.js';
+import { OptionsManager } from './modules/options-manager.js';
+import { TabManager } from './modules/tab-manager.js';
+import { UIManager } from './modules/ui-manager.js';
 
-// DOM elements
-const statusIndicator = document.getElementById('statusIndicator');
-const statusDot = statusIndicator.querySelector('.status-dot');
-const statusText = statusIndicator.querySelector('.status-text');
-const tabsCount = document.getElementById('tabsCount');
-const groupsCount = document.getElementById('groupsCount');
-const saveToDriveButton = document.getElementById('saveToDriveButton');
-const loadFromDriveButton = document.getElementById('loadFromDriveButton');
-const testDriveButton = document.getElementById('testDriveButton');
-
-// Session management elements
-const sessionSelect = document.getElementById('sessionSelect');
-const newSessionButton = document.getElementById('newSessionButton');
-const deleteSessionButton = document.getElementById('deleteSessionButton');
-const newSessionModal = document.getElementById('newSessionModal');
-const sessionNameInput = document.getElementById('sessionNameInput');
-const createSessionButton = document.getElementById('createSessionButton');
-const cancelNewSessionButton = document.getElementById('cancelNewSessionButton');
-const closeModalButton = document.getElementById('closeModalButton');
-
-// Auto sync elements
-const autoSyncToggle = document.getElementById('autoSyncToggle');
-const syncStatus = document.getElementById('syncStatus');
-const syncIndicator = syncStatus.querySelector('.sync-indicator');
-const syncText = syncStatus.querySelector('.sync-text');
-
-// Session management
-let currentSession = 'default';
-let sessions = ['default'];
-
-// Initialize the popup
-async function initializePopup() {
-    await loadSessions();
-    await updateStats();
-    await checkConnection();
-    await loadAutoSyncStatus();
-}
-
-// Load auto sync status
-async function loadAutoSyncStatus() {
-    try {
-        const response = await chrome.runtime.sendMessage({ action: 'getAutoSyncStatus' });
-        autoSyncToggle.checked = response.enabled;
-        updateSyncStatus(response.lastSyncTime);
-    } catch (error) {
-        console.error('Error loading auto sync status:', error);
+class PopupController {
+    constructor() {
+        this.driveAPI = new GoogleDriveAPI();
+        this.ui = new UIManager();
+        this.optionsManager = new OptionsManager();
+        this.sessionManager = new SessionManager(this.driveAPI);
+        this.tabManager = new TabManager(this.optionsManager);
+        
+        this.initialize();
     }
-}
 
-// Update sync status display
-function updateSyncStatus(lastSyncTime) {
-    if (lastSyncTime) {
-        const date = new Date(lastSyncTime);
-        const now = new Date();
-        const diffMs = now - date;
-        const diffMins = Math.floor(diffMs / 60000);
-        
-        if (diffMins < 1) {
-            syncText.textContent = 'Última sincronización: Ahora mismo';
-        } else if (diffMins < 60) {
-            syncText.textContent = `Última sincronización: Hace ${diffMins} min`;
-        } else {
-            const diffHours = Math.floor(diffMins / 60);
-            syncText.textContent = `Última sincronización: Hace ${diffHours}h`;
-        }
-        
-        syncIndicator.className = 'sync-indicator synced';
-    } else {
-        syncText.textContent = 'Última sincronización: Nunca';
-        syncIndicator.className = 'sync-indicator';
+    async initialize() {
+        await this.loadData();
+        await this.setupEventListeners();
+        await this.updateUI();
     }
-}
 
-// Load sessions from Google Drive
-async function loadSessions() {
-    try {
-        const sessionsData = await driveAPI.loadFromDrive('bsync-sessions.json');
-        sessions = sessionsData.sessions || ['default'];
-        currentSession = sessionsData.currentSession || 'default';
-        updateSessionSelect();
-        
-        // Update background script with current session
-        await chrome.runtime.sendMessage({ 
-            action: 'setCurrentSession', 
-            session: currentSession 
-        });
-    } catch (error) {
-        console.log('No sessions file found, using default');
-        sessions = ['default'];
-        currentSession = 'default';
-        updateSessionSelect();
+    async loadData() {
+        await this.sessionManager.loadSessions();
+        await this.optionsManager.loadOptions();
     }
-}
 
-// Save sessions to Google Drive
-async function saveSessions() {
-    try {
-        const sessionsData = {
-            sessions: sessions,
-            currentSession: currentSession
-        };
-        await driveAPI.saveToDrive('bsync-sessions.json', sessionsData);
-        
-        // Update background script with current session
-        await chrome.runtime.sendMessage({ 
-            action: 'setCurrentSession', 
-            session: currentSession 
-        });
-    } catch (error) {
-        console.error('Error saving sessions:', error);
-    }
-}
-
-// Update session select dropdown
-function updateSessionSelect() {
-    sessionSelect.innerHTML = '';
-    sessions.forEach(session => {
-        const option = document.createElement('option');
-        option.value = session;
-        option.textContent = session === 'default' ? 'Sesión Principal' : session;
-        if (session === currentSession) {
-            option.selected = true;
-        }
-        sessionSelect.appendChild(option);
-    });
-    
-    // Enable/disable delete button
-    deleteSessionButton.disabled = currentSession === 'default';
-}
-
-// Get current session filename
-function getSessionFilename() {
-    return currentSession === 'default' ? 'bsync-tabs.json' : `bsync-tabs-${currentSession}.json`;
-}
-
-// Update statistics
-async function updateStats() {
-    try {
-        const tabs = await chrome.tabs.query({});
-        const groups = await chrome.tabGroups.query({});
-        
-        tabsCount.textContent = tabs.length;
-        groupsCount.textContent = groups.length;
-    } catch (error) {
-        console.error('Error updating stats:', error);
-    }
-}
-
-// Check Google Drive connection
-async function checkConnection() {
-    try {
-        statusText.textContent = 'Verificando conexión...';
-        statusDot.className = 'status-dot';
-        
-        const authenticated = await driveAPI.authenticate();
-        if (authenticated) {
-            statusText.textContent = 'Conectado a Google Drive';
-            statusDot.className = 'status-dot connected';
-        } else {
-            statusText.textContent = 'No conectado';
-            statusDot.className = 'status-dot error';
-        }
-    } catch (error) {
-        statusText.textContent = 'Error de conexión';
-        statusDot.className = 'status-dot error';
-        console.error('Connection check failed:', error);
-    }
-}
-
-// Show message
-function showMessage(message, type = 'success') {
-    const messageEl = document.createElement('div');
-    messageEl.className = `message ${type}`;
-    messageEl.textContent = message;
-    document.body.appendChild(messageEl);
-    
-    setTimeout(() => {
-        messageEl.remove();
-    }, 3000);
-}
-
-// Add loading state to button
-function setButtonLoading(button, loading) {
-    if (loading) {
-        button.classList.add('loading');
-        button.disabled = true;
-    } else {
-        button.classList.remove('loading');
-        button.disabled = false;
-    }
-}
-
-// Modal functions
-function showModal() {
-    newSessionModal.classList.add('show');
-    sessionNameInput.focus();
-}
-
-function hideModal() {
-    newSessionModal.classList.remove('show');
-    sessionNameInput.value = '';
-}
-
-// Event listeners for session management
-sessionSelect.addEventListener('change', async (e) => {
-    currentSession = e.target.value;
-    await saveSessions();
-    updateSessionSelect();
-    showMessage(`Cambiado a sesión: ${currentSession === 'default' ? 'Principal' : currentSession}`);
-});
-
-newSessionButton.addEventListener('click', showModal);
-
-deleteSessionButton.addEventListener('click', async () => {
-    if (currentSession === 'default') return;
-    
-    if (confirm(`¿Estás seguro de que quieres eliminar la sesión "${currentSession}"?`)) {
-        try {
-            // Remove session from list
-            sessions = sessions.filter(s => s !== currentSession);
-            currentSession = 'default';
-            
-            // Save updated sessions
-            await saveSessions();
-            updateSessionSelect();
-            
-            // Try to delete the session file
-            try {
-                await driveAPI.deleteFile(`bsync-tabs-${currentSession}.json`);
-            } catch (error) {
-                console.log('Session file not found or already deleted');
-            }
-            
-            showMessage(`Sesión "${currentSession}" eliminada`);
-        } catch (error) {
-            showMessage('Error al eliminar la sesión', 'error');
-        }
-    }
-});
-
-createSessionButton.addEventListener('click', async () => {
-    const sessionName = sessionNameInput.value.trim();
-    if (!sessionName) {
-        showMessage('Por favor ingresa un nombre para la sesión', 'error');
-        return;
-    }
-    
-    if (sessions.includes(sessionName)) {
-        showMessage('Ya existe una sesión con ese nombre', 'error');
-        return;
-    }
-    
-    try {
-        sessions.push(sessionName);
-        currentSession = sessionName;
-        await saveSessions();
-        updateSessionSelect();
-        hideModal();
-        showMessage(`Sesión "${sessionName}" creada`);
-    } catch (error) {
-        showMessage('Error al crear la sesión', 'error');
-    }
-});
-
-cancelNewSessionButton.addEventListener('click', hideModal);
-closeModalButton.addEventListener('click', hideModal);
-
-// Close modal when clicking outside
-newSessionModal.addEventListener('click', (e) => {
-    if (e.target === newSessionModal) {
-        hideModal();
-    }
-});
-
-// Auto sync toggle event listener
-autoSyncToggle.addEventListener('change', async (e) => {
-    const enabled = e.target.checked;
-    
-    try {
-        await chrome.runtime.sendMessage({ 
-            action: 'setAutoSync', 
-            enabled: enabled 
-        });
-        
-        if (enabled) {
-            showMessage('✅ Sincronización automática activada');
-            syncIndicator.className = 'sync-indicator syncing';
-        } else {
-            showMessage('⏸️ Sincronización automática desactivada');
-            syncIndicator.className = 'sync-indicator';
-        }
-    } catch (error) {
-        console.error('Error setting auto sync:', error);
-        showMessage('Error al cambiar sincronización automática', 'error');
-        e.target.checked = !enabled; // Revert the toggle
-    }
-});
-
-// Listen for auto sync messages from background script
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'autoSync') {
-        handleAutoSync(message.data);
-    }
-});
-
-// Handle automatic sync
-async function handleAutoSync(data) {
-    try {
-        syncIndicator.className = 'sync-indicator syncing';
-        
-        await driveAPI.saveToDrive(data.filename, data.tabs);
-        
-        syncIndicator.className = 'sync-indicator synced';
-        updateSyncStatus(new Date().toISOString());
-        
-        console.log('Auto sync completed successfully');
-    } catch (error) {
-        console.error('Auto sync failed:', error);
-        syncIndicator.className = 'sync-indicator error';
-    }
-}
-
-// Test Google Drive connection
-testDriveButton.addEventListener("click", async () => {
-    try {
-        setButtonLoading(testDriveButton, true);
-        console.log("Testing Google Drive connection...");
-        
-        const authenticated = await driveAPI.authenticate();
-        if (authenticated) {
-            showMessage("✅ Conexión exitosa con Google Drive");
-            statusText.textContent = 'Conectado a Google Drive';
-            statusDot.className = 'status-dot connected';
-        } else {
-            showMessage("❌ Error de conexión con Google Drive", 'error');
-            statusText.textContent = 'Error de conexión';
-            statusDot.className = 'status-dot error';
-        }
-    } catch (error) {
-        console.error("Test failed:", error);
-        showMessage("❌ Error: " + error.message, 'error');
-        statusText.textContent = 'Error de conexión';
-        statusDot.className = 'status-dot error';
-    } finally {
-        setButtonLoading(testDriveButton, false);
-    }
-});
-
-// Save tabs to Google Drive
-saveToDriveButton.addEventListener("click", async () => {
-    try {
-        setButtonLoading(saveToDriveButton, true);
-        
-        const tabs = await chrome.tabs.query({});
-        const groups = await chrome.tabGroups.query({});
-        const groupCache = Object.assign({}, ...groups.map((group) => ({[group.id]: group.title})));
-        const normalizedTabs = tabs
-            .map(tab => ({ ...tab, groupName: groupCache[tab.groupId] }))
-            .map(function(item) { 
-                delete item.vivExtData;
-                return item; 
-            });
-
-        const filename = getSessionFilename();
-        await driveAPI.saveToDrive(filename, normalizedTabs);
-        
-        showMessage(`✅ ${tabs.length} pestañas guardadas en sesión "${currentSession === 'default' ? 'Principal' : currentSession}"`);
-        console.log("Tabs saved:", normalizedTabs);
-        
-        // Update stats and sync status
-        await updateStats();
-        updateSyncStatus(new Date().toISOString());
-    } catch (error) {
-        console.error("Save failed:", error);
-        showMessage("❌ Error al guardar: " + error.message, 'error');
-    } finally {
-        setButtonLoading(saveToDriveButton, false);
-    }
-});
-
-// Load tabs from Google Drive
-loadFromDriveButton.addEventListener("click", async () => {
-    try {
-        setButtonLoading(loadFromDriveButton, true);
-        
-        const filename = getSessionFilename();
-        const tabs = await driveAPI.loadFromDrive(filename);
-        
-        showMessage(`✅ Pestañas cargadas desde sesión "${currentSession === 'default' ? 'Principal' : currentSession}"`);
-        console.log("Tabs loaded:", tabs);
-        
-        // Restore tabs
-        await restoreTabs(tabs);
-        
+    async updateUI() {
         // Update stats
-        await updateStats();
-    } catch (error) {
-        console.error("Load failed:", error);
-        showMessage("❌ Error al cargar: " + error.message, 'error');
-    } finally {
-        setButtonLoading(loadFromDriveButton, false);
-    }
-});
+        const stats = await this.tabManager.getStats();
+        this.ui.updateStats(stats);
 
-// Function to restore tabs
-async function restoreTabs(savedTabs) {
-    try {
-        // Get current window
-        const currentWindow = await chrome.windows.getCurrent();
-        
-        // Get all currently open tabs
-        const currentTabs = await chrome.tabs.query({ windowId: currentWindow.id });
-        const currentUrls = currentTabs.map(tab => tab.url);
-        
-        // Filter out tabs that are already open
-        const tabsToOpen = savedTabs.filter(savedTab => !currentUrls.includes(savedTab.url));
-        
-        if (tabsToOpen.length === 0) {
-            showMessage("✅ Todas las pestañas ya están abiertas");
+        // Update session select
+        this.ui.updateSessionSelect(
+            this.sessionManager.getSessions(),
+            this.sessionManager.getCurrentSession()
+        );
+
+        // Update options UI
+        this.ui.updateOptionsUI(this.optionsManager.getOptions());
+
+        // Update auto sync status
+        await this.loadAutoSyncStatus();
+
+        // Check connection
+        await this.checkConnection();
+    }
+
+    async loadAutoSyncStatus() {
+        try {
+            const response = await chrome.runtime.sendMessage({ action: 'getAutoSyncStatus' });
+            this.ui.updateAutoSyncUI(response.enabled);
+            this.ui.updateSyncStatus(response.lastSyncTime);
+        } catch (error) {
+            console.error('Error loading auto sync status:', error);
+        }
+    }
+
+    async checkConnection() {
+        try {
+            this.ui.updateConnectionStatus('', 'Verificando conexión...');
+            
+            const authenticated = await this.driveAPI.authenticate();
+            if (authenticated) {
+                this.ui.updateConnectionStatus('connected', 'Conectado a Google Drive');
+            } else {
+                this.ui.updateConnectionStatus('error', 'No conectado');
+            }
+        } catch (error) {
+            this.ui.updateConnectionStatus('error', 'Error de conexión');
+            console.error('Connection check failed:', error);
+        }
+    }
+
+    setupEventListeners() {
+        // Session management
+        this.ui.sessionSelect.addEventListener('change', (e) => this.handleSessionChange(e));
+        this.ui.newSessionButton.addEventListener('click', () => this.ui.showModal());
+        this.ui.deleteSessionButton.addEventListener('click', () => this.handleDeleteSession());
+        this.ui.createSessionButton.addEventListener('click', () => this.handleCreateSession());
+        this.ui.cancelNewSessionButton.addEventListener('click', () => this.ui.hideModal());
+        this.ui.closeModalButton.addEventListener('click', () => this.ui.hideModal());
+
+        // Modal outside click
+        this.ui.newSessionModal.addEventListener('click', (e) => {
+            if (e.target === this.ui.newSessionModal) {
+                this.ui.hideModal();
+            }
+        });
+
+        // Options
+        this.ui.expandOptionsButton.addEventListener('click', () => this.ui.toggleOptionsExpansion());
+        this.ui.newWindowToggle.addEventListener('change', (e) => this.handleOptionChange('newWindow', e.target.checked));
+        this.ui.closeExistingToggle.addEventListener('change', (e) => this.handleOptionChange('closeExisting', e.target.checked));
+        this.ui.preserveGroupsToggle.addEventListener('change', (e) => this.handleOptionChange('preserveGroups', e.target.checked));
+
+        // Auto sync
+        this.ui.autoSyncToggle.addEventListener('change', (e) => this.handleAutoSyncToggle(e));
+
+        // Main actions
+        this.ui.saveToDriveButton.addEventListener('click', () => this.handleSaveTabs());
+        this.ui.loadFromDriveButton.addEventListener('click', () => this.handleLoadTabs());
+        this.ui.testDriveButton.addEventListener('click', () => this.handleTestConnection());
+
+        // Auto sync messages from background
+        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+            if (message.action === 'autoSync') {
+                this.handleAutoSync(message.data);
+            }
+        });
+    }
+
+    async handleSessionChange(e) {
+        const sessionName = e.target.value;
+        await this.sessionManager.setCurrentSession(sessionName);
+        this.ui.updateSessionSelect(
+            this.sessionManager.getSessions(),
+            this.sessionManager.getCurrentSession()
+        );
+        this.ui.showMessage(`Cambiado a sesión: ${sessionName === 'default' ? 'Principal' : sessionName}`);
+    }
+
+    async handleCreateSession() {
+        const sessionName = this.ui.sessionNameInput.value.trim();
+        if (!sessionName) {
+            this.ui.showMessage('Por favor ingresa un nombre para la sesión', 'error');
             return;
         }
-        
-        // Open new tabs in the current window
-        for (const tab of tabsToOpen) {
-            await chrome.tabs.create({
-                windowId: currentWindow.id,
-                url: tab.url,
-                active: false
-            });
-        }
 
-        // Restore tab groups if they exist
-        const groups = savedTabs.filter(tab => tab.groupName);
-        if (groups.length > 0) {
-            await restoreTabGroups(currentWindow.id, groups);
+        try {
+            await this.sessionManager.createSession(sessionName);
+            this.ui.updateSessionSelect(
+                this.sessionManager.getSessions(),
+                this.sessionManager.getCurrentSession()
+            );
+            this.ui.hideModal();
+            this.ui.showMessage(`Sesión "${sessionName}" creada`);
+        } catch (error) {
+            this.ui.showMessage('Error al crear la sesión', 'error');
         }
-
-        showMessage(`✅ ${tabsToOpen.length} pestañas restauradas en la ventana actual`);
-    } catch (error) {
-        console.error("Error restoring tabs:", error);
-        showMessage("❌ Error al restaurar pestañas: " + error.message, 'error');
     }
-}
 
-// Function to restore tab groups
-async function restoreTabGroups(windowId, tabsWithGroups) {
-    try {
-        const groupNames = [...new Set(tabsWithGroups.map(tab => tab.groupName))];
-        
-        for (const groupName of groupNames) {
-            // Create the group
-            const group = await chrome.tabGroups.create({
-                windowId: windowId,
-                title: groupName
-            });
+    async handleDeleteSession() {
+        const currentSession = this.sessionManager.getCurrentSession();
+        if (currentSession === 'default') return;
 
-            // Get all tabs in this window
-            const allTabs = await chrome.tabs.query({ windowId: windowId });
-            
-            // Find tabs that should be in this group
-            const tabsToGroup = allTabs.filter(tab => {
-                const savedTab = tabsWithGroups.find(saved => saved.url === tab.url);
-                return savedTab && savedTab.groupName === groupName;
-            });
-
-            // Add tabs to the group
-            for (const tab of tabsToGroup) {
-                await chrome.tabGroups.update(group.id, {
-                    tabIds: [...(group.tabIds || []), tab.id]
-                });
+        if (confirm(`¿Estás seguro de que quieres eliminar la sesión "${currentSession}"?`)) {
+            try {
+                await this.sessionManager.deleteSession(currentSession);
+                this.ui.updateSessionSelect(
+                    this.sessionManager.getSessions(),
+                    this.sessionManager.getCurrentSession()
+                );
+                this.ui.showMessage(`Sesión "${currentSession}" eliminada`);
+            } catch (error) {
+                this.ui.showMessage('Error al eliminar la sesión', 'error');
             }
         }
-    } catch (error) {
-        console.error("Error restoring tab groups:", error);
+    }
+
+    async handleOptionChange(key, value) {
+        await this.optionsManager.updateOption(key, value);
+        const optionNames = {
+            newWindow: 'Nueva ventana',
+            closeExisting: 'Cerrar pestañas existentes',
+            preserveGroups: 'Preservar grupos'
+        };
+        this.ui.showMessage(`${optionNames[key]} ${value ? 'activado' : 'desactivado'}`);
+    }
+
+    async handleAutoSyncToggle(e) {
+        const enabled = e.target.checked;
+        
+        try {
+            await chrome.runtime.sendMessage({ 
+                action: 'setAutoSync', 
+                enabled: enabled 
+            });
+            
+            if (enabled) {
+                this.ui.showMessage('✅ Sincronización automática activada');
+                this.ui.setSyncIndicatorStatus('syncing');
+            } else {
+                this.ui.showMessage('⏸️ Sincronización automática desactivada');
+                this.ui.setSyncIndicatorStatus('');
+            }
+        } catch (error) {
+            console.error('Error setting auto sync:', error);
+            this.ui.showMessage('Error al cambiar sincronización automática', 'error');
+            e.target.checked = !enabled; // Revert the toggle
+        }
+    }
+
+    async handleTestConnection() {
+        this.ui.setButtonLoading(this.ui.testDriveButton, true);
+        
+        try {
+            const authenticated = await this.driveAPI.authenticate();
+            if (authenticated) {
+                this.ui.showMessage("✅ Conexión exitosa con Google Drive");
+                this.ui.updateConnectionStatus('connected', 'Conectado a Google Drive');
+            } else {
+                this.ui.showMessage("❌ Error de conexión con Google Drive", 'error');
+                this.ui.updateConnectionStatus('error', 'Error de conexión');
+            }
+        } catch (error) {
+            this.ui.showMessage("❌ Error: " + error.message, 'error');
+            this.ui.updateConnectionStatus('error', 'Error de conexión');
+        } finally {
+            this.ui.setButtonLoading(this.ui.testDriveButton, false);
+        }
+    }
+
+    async handleSaveTabs() {
+        this.ui.setButtonLoading(this.ui.saveToDriveButton, true);
+        
+        try {
+            const tabs = await this.tabManager.getTabsData();
+            const filename = this.sessionManager.getSessionFilename();
+            await this.driveAPI.saveToDrive(filename, tabs);
+            
+            const currentSession = this.sessionManager.getCurrentSession();
+            this.ui.showMessage(`✅ ${tabs.length} pestañas guardadas en sesión "${currentSession === 'default' ? 'Principal' : currentSession}"`);
+            
+            // Update stats and sync status
+            const stats = await this.tabManager.getStats();
+            this.ui.updateStats(stats);
+            this.ui.updateSyncStatus(new Date().toISOString());
+        } catch (error) {
+            this.ui.showMessage("❌ Error al guardar: " + error.message, 'error');
+        } finally {
+            this.ui.setButtonLoading(this.ui.saveToDriveButton, false);
+        }
+    }
+
+    async handleLoadTabs() {
+        this.ui.setButtonLoading(this.ui.loadFromDriveButton, true);
+        
+        try {
+            const filename = this.sessionManager.getSessionFilename();
+            const tabs = await this.driveAPI.loadFromDrive(filename);
+            
+            const currentSession = this.sessionManager.getCurrentSession();
+            this.ui.showMessage(`✅ Pestañas cargadas desde sesión "${currentSession === 'default' ? 'Principal' : currentSession}"`);
+            
+            // Restore tabs
+            const result = await this.tabManager.restoreTabs(tabs);
+            if (result.success) {
+                this.ui.showMessage(`✅ ${result.message}`);
+            } else {
+                this.ui.showMessage(`❌ ${result.message}`, 'error');
+            }
+            
+            // Update stats
+            const stats = await this.tabManager.getStats();
+            this.ui.updateStats(stats);
+        } catch (error) {
+            this.ui.showMessage("❌ Error al cargar: " + error.message, 'error');
+        } finally {
+            this.ui.setButtonLoading(this.ui.loadFromDriveButton, false);
+        }
+    }
+
+    async handleAutoSync(data) {
+        try {
+            this.ui.setSyncIndicatorStatus('syncing');
+            
+            await this.driveAPI.saveToDrive(data.filename, data.tabs);
+            
+            this.ui.setSyncIndicatorStatus('synced');
+            this.ui.updateSyncStatus(new Date().toISOString());
+            
+            console.log('Auto sync completed successfully');
+        } catch (error) {
+            console.error('Auto sync failed:', error);
+            this.ui.setSyncIndicatorStatus('error');
+        }
     }
 }
 
 // Initialize when popup opens
-document.addEventListener('DOMContentLoaded', initializePopup);
-
+document.addEventListener('DOMContentLoaded', () => {
+    new PopupController();
+});
