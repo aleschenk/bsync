@@ -3,16 +3,24 @@
   "version": "1.0.0",
   "description": "Chrome extension for syncing browser tabs",
   "scripts": {
-    "dev": "tsc --watch",
-    "build": "tsc",
+    "dev": "webpack --watch",
+    "build": "npm run clean && webpack && npm run copy-assets",
+    "copy-assets": "cp manifest.json popup.html popup.css default_icon.png dist/",
     "clean": "rm -rf dist/*",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/chrome": "^0.0.254",
+    "ts-loader": "^9.5.4",
     "typescript": "^5.3.0",
-    "@types/chrome": "^0.0.254"
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1"
   },
-  "keywords": ["chrome-extension", "typescript", "tabs-sync"],
+  "keywords": [
+    "chrome-extension",
+    "typescript",
+    "tabs-sync"
+  ],
   "author": "BSync Team",
   "license": "MIT"
 }

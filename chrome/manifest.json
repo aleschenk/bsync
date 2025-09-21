@@ -15,7 +15,7 @@
         "storage"
     ],
   "background": {
-    "service_worker": "dist/background.js"
+    "service_worker": "background.js"
   },
     "oauth2": {
         "client_id": "286185816026-19nn4lfgm3prmpjm9lm49004abdd8bum.apps.googleusercontent.com",

@@ -1,13 +1,12 @@
 // Background script for automatic sync
-interface AutoSyncSettings {
-    autoSyncEnabled: boolean;
-    lastSyncTime: string | null;
-    currentSession: string;
-}
+import { GoogleDriveAPI } from './google-drive-api';
+
+// Make GoogleDriveAPI globally available
+(self as any).GoogleDriveAPI = GoogleDriveAPI;
 
 class BackgroundSyncManager {
     private autoSyncEnabled: boolean = false;
-    private syncTimeout: number | null = null;
+    private syncTimeout: ReturnType<typeof setTimeout> | null = null;
     private lastSyncTime: string | null = null;
 
     constructor() {

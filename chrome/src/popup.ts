@@ -5,8 +5,10 @@ import { TabManager } from './modules/tab-manager';
 import { UIManager } from './modules/ui-manager';
 import { StorageManager } from './modules/storage-manager';
 import { StorageType, Options } from './types';
+import { GoogleDriveAPI } from './google-drive-api';
 
-// GoogleDriveAPI está declarado globalmente en global.d.ts
+// Make GoogleDriveAPI globally available
+(window as any).GoogleDriveAPI = GoogleDriveAPI;
 
 class PopupController {
     private storageManager: StorageManager;
@@ -207,6 +209,9 @@ class PopupController {
         const target = e.target as HTMLSelectElement;
         const storageType = target.value as StorageType;
         await this.optionsManager.updateOption('storageType', storageType);
+        
+        // Mostrar/ocultar opciones de BSync según el tipo seleccionado
+        this.ui.toggleBSyncOptions(storageType === 'bsync-server');
         
         // Actualizar el storage manager
         this.storageManager.setStorageType(storageType);
