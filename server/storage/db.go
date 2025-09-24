@@ -1,9 +1,8 @@
-package main
+package storage
 
 import (
 	"time"
 
-	"bsync.com/m/v2/storage"
 	"github.com/genjidb/genji"
 )
 
@@ -55,7 +54,7 @@ func InitDatabase(path string) {
 func CreateNewAccount(ID string) error {
 	createdAt := time.Now().Format(time.RFC3339)
 
-	account := storage.Account{
+	account := Account{
 		ID:        ID,
 		CreatedAt: createdAt,
 	}
@@ -67,7 +66,7 @@ func CreateNewAccount(ID string) error {
 	return nil
 }
 
-func GetSession(accountID, sessionID string) (*storage.Session, error) {
+func GetSession(accountID, sessionID string) (*Session, error) {
 	doc, err := gdb.QueryDocument("SELECT * FROM sessions WHERE account_id = ? AND session_id = ?", accountID, sessionID)
 	if genji.IsNotFoundError(err) {
 		return nil, nil
@@ -80,7 +79,7 @@ func GetSession(accountID, sessionID string) (*storage.Session, error) {
 	return nil, nil
 }
 
-func SaveSession(accountID, sessionID string, tabs []storage.Tab) error {
+func SaveSession(accountID, sessionID string, tabs []Tab) error {
 	_, err := gdb.QueryDocument("SELECT * FROM sessions WHERE account_id = ? AND session_id = ?", accountID, sessionID)
 
 	if genji.IsNotFoundError(err) {
@@ -91,21 +90,21 @@ func SaveSession(accountID, sessionID string, tabs []storage.Tab) error {
 	return updateSession(accountID, sessionID, tabs)
 }
 
-func createNewSession(accountID, sessionID string, tabs []storage.Tab) error {
+func createNewSession(accountID, sessionID string, tabs []Tab) error {
 	createdAt := time.Now().Format(time.RFC3339)
 
-	session := storage.Session{
+	session := Session{
 		AccountID:  accountID,
 		SessionID:  sessionID,
 		CreatedAt:  createdAt,
 		ModifiedAt: createdAt,
-		Tabs:       []storage.Tab{},
+		Tabs:       []Tab{},
 	}
 
 	return gdb.Exec(`INSERT INTO sessions VALUES ?`, &session)
 }
 
-func updateSession(accountID, sessionID string, tabs []storage.Tab) error {
+func updateSession(accountID, sessionID string, tabs []Tab) error {
 	modifiedAt := time.Now().Format(time.RFC3339)
 
 	return gdb.Exec(`

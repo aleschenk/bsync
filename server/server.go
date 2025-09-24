@@ -52,11 +52,10 @@ func saveSession(c *gin.Context) {
 
 func getAllSession(c *gin.Context) {
 	accountId := c.Param("accountId")
-	sessionId := c.Param("sessionId")
 
-	sessionsName, err := store.GetAllSessions(accountId, sessionId)
+	sessionsName, err := store.GetAllSessions(accountId)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "The sessions %s for the account %s could not be created or updated", sessionId, accountId)
+		c.String(http.StatusInternalServerError, "Error fetching account with id: %s", accountId)
 		return
 	}
 
@@ -76,6 +75,15 @@ func getSession(c *gin.Context) {
 	c.JSON(http.StatusOK, session.Tabs)
 }
 
+func healthCheck(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status":    "healthy",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"service":   "bsync-server",
+		"version":   "1.0.0",
+	})
+}
+
 func StartServer() {
 	var serverAddr, databasePath string
 
@@ -85,8 +93,8 @@ func StartServer() {
 	`)
 	flag.Parse()
 
-	InitDatabase(databasePath)
-	defer CloseDatabase()
+	storage.InitDatabase(databasePath)
+	defer storage.CloseDatabase()
 
 	router := gin.Default()
 
@@ -102,6 +110,10 @@ func StartServer() {
 		MaxAge: 1 * time.Hour,
 	}))
 
+	// Health check endpoint
+	router.GET("/health", healthCheck)
+
+	// API endpoints
 	router.POST("/accounts", newAccount)
 	router.POST("/accounts/:accountId/sessions/:sessionId", saveSession)
 	router.GET("/accounts/:accountId/sessions", getAllSession)

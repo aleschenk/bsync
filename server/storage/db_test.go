@@ -1,9 +1,7 @@
-package main
+package storage
 
 import (
 	"testing"
-
-	"bsync.com/m/v2/storage"
 )
 
 // TestHelloName calls greetings.Hello with a name, checking
@@ -17,7 +15,7 @@ func TestHelloName(t *testing.T) {
 	// }
 	InitDatabase(":memory:")
 	CreateNewAccount("test")
-	SaveSession("test", "default", []storage.Tab{})
+	SaveSession("test", "default", []Tab{})
 	CloseDatabase()
 	// t.Fatalf(`Hello("Gladys") = %q, %v, want match for %#q, nil`, msg, err, want)
 }

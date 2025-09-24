@@ -1,0 +1,27 @@
+services:
+  bsync-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bsync-server
+    ports:
+      - "2544:2544"
+    volumes:
+      # Persist database data
+      - ./data:/root/data
+    environment:
+      - GIN_MODE=release
+      - PORT=2544
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:2544/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - bsync-network
+
+networks:
+  bsync-network:
+    driver: bridge

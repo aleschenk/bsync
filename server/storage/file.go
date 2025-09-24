@@ -3,7 +3,6 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -32,7 +31,7 @@ func sessionFilename(accountID, sessionID string) string {
 	return fmt.Sprintf("%s/accounts/%s/session_%s", rootPath, accountID, sessionID)
 }
 
-func (fss *FileSystemStorage) GetAllSessions(accountID, sessionID string) ([]string, error) {
+func (fss *FileSystemStorage) GetAllSessions(accountID string) ([]string, error) {
 	sessions := []string{""}
 
 	accountPath := fmt.Sprintf("%s/accounts/%s", rootPath, accountID)
@@ -94,7 +93,7 @@ func (fss *FileSystemStorage) SaveSession(accountID, sessionID string, tabs []Ta
 		return err
 	}
 
-	err = ioutil.WriteFile(sessionFile, jsonData, 0644)
+	err = os.WriteFile(sessionFile, jsonData, 0644)
 	if err != nil {
 		return err
 	}
