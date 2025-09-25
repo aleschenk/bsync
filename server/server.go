@@ -169,7 +169,12 @@ func StartServer() {
 	// Configure Swagger docs
 	docs.SwaggerInfo.BasePath = "/"
 
-	router := gin.Default()
+	// Set Gin to release mode to reduce logging
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+
+	// Add only essential middleware
+	router.Use(gin.Recovery())
 
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},

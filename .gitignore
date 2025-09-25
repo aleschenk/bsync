@@ -30,6 +30,9 @@ dist/
 *.d.ts.map
 *.js.map
 
+# Go - Keep docs/ for Swagger
+# docs/ is needed for Swagger UI to work
+
 # Chrome Extension
 *.crx
 *.pem

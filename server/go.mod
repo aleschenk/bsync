@@ -1,6 +1,6 @@
 module bsync.com/m/v2
 
-go 1.19
+go 1.21
 
 require (
 	github.com/genjidb/genji v0.15.1
