@@ -4,8 +4,8 @@ FROM golang:1.19-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Install git (needed for go mod download)
-RUN apk add --no-cache git
+# Install git and wget (needed for go mod download and health check)
+RUN apk add --no-cache git wget
 
 # Copy go mod files
 COPY go.mod go.sum ./
@@ -30,6 +30,9 @@ WORKDIR /root/
 
 # Copy the binary from builder stage
 COPY --from=builder /app/main .
+
+# Copy Swagger documentation
+COPY --from=builder /app/docs /root/docs
 
 # Create data directory for Genji database
 RUN mkdir -p /root/data

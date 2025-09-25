@@ -6,13 +6,34 @@ import (
 	"net/http"
 	"time"
 
+	docs "bsync.com/m/v2/docs" // Import docs package
 	"bsync.com/m/v2/storage"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 var store storage.FileSystemStorage
 
+// HealthResponse represents the health check response
+type HealthResponse struct {
+	Status    string `json:"status" example:"healthy"`
+	Timestamp string `json:"timestamp" example:"2024-01-20T19:30:45Z"`
+	Service   string `json:"service" example:"bsync-server"`
+	Version   string `json:"version" example:"1.0.0"`
+}
+
+// @Summary Create new account
+// @Description Create a new account with the given ID
+// @Tags accounts
+// @Accept application/x-www-form-urlencoded
+// @Produce plain
+// @Param id formData string true "Account ID"
+// @Success 201 {string} string "Account created successfully"
+// @Failure 400 {string} string "Missing id parameter"
+// @Failure 500 {string} string "Account could not be created"
+// @Router /accounts [post]
 func newAccount(c *gin.Context) {
 	accountId := c.PostForm("id")
 
@@ -30,6 +51,18 @@ func newAccount(c *gin.Context) {
 	c.String(http.StatusCreated, "", accountId)
 }
 
+// @Summary Save session
+// @Description Save or update a session for a specific account
+// @Tags sessions
+// @Accept json
+// @Produce plain
+// @Param accountId path string true "Account ID"
+// @Param sessionId path string true "Session ID"
+// @Param session body []storage.Tab true "Session data"
+// @Success 201 {string} string "Session saved successfully"
+// @Failure 400 {string} string "Invalid JSON data"
+// @Failure 500 {string} string "Session could not be saved"
+// @Router /accounts/{accountId}/sessions/{sessionId} [post]
 func saveSession(c *gin.Context) {
 	accountId := c.Param("accountId")
 	sessionId := c.Param("sessionId")
@@ -50,6 +83,15 @@ func saveSession(c *gin.Context) {
 	c.String(http.StatusCreated, "", accountId)
 }
 
+// @Summary Get all sessions
+// @Description Get all sessions for a specific account
+// @Tags sessions
+// @Accept json
+// @Produce json
+// @Param accountId path string true "Account ID"
+// @Success 200 {array} string "List of session names"
+// @Failure 500 {string} string "Error fetching sessions"
+// @Router /accounts/{accountId}/sessions [get]
 func getAllSession(c *gin.Context) {
 	accountId := c.Param("accountId")
 
@@ -62,6 +104,16 @@ func getAllSession(c *gin.Context) {
 	c.JSON(http.StatusOK, sessionsName)
 }
 
+// @Summary Get specific session
+// @Description Get a specific session for an account
+// @Tags sessions
+// @Accept json
+// @Produce json
+// @Param accountId path string true "Account ID"
+// @Param sessionId path string true "Session ID"
+// @Success 200 {array} storage.Tab "Session tabs"
+// @Failure 500 {string} string "Error fetching session"
+// @Router /accounts/{accountId}/sessions/{sessionId} [get]
 func getSession(c *gin.Context) {
 	accountId := c.Param("accountId")
 	sessionId := c.Param("sessionId")
@@ -75,6 +127,13 @@ func getSession(c *gin.Context) {
 	c.JSON(http.StatusOK, session.Tabs)
 }
 
+// @Summary Health check
+// @Description Get server health status
+// @Tags health
+// @Accept json
+// @Produce json
+// @Success 200 {object} HealthResponse
+// @Router /health [get]
 func healthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":    "healthy",
@@ -84,6 +143,17 @@ func healthCheck(c *gin.Context) {
 	})
 }
 
+// @title BSync Server API
+// @version 1.0.0
+// @description API for BSync tab synchronization server
+// @termsOfService http://swagger.io/terms/
+// @contact.name BSync Team
+// @contact.url https://github.com/bsync
+// @contact.email support@bsync.com
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+// @host localhost:2544
+// @BasePath /
 func StartServer() {
 	var serverAddr, databasePath string
 
@@ -95,6 +165,9 @@ func StartServer() {
 
 	storage.InitDatabase(databasePath)
 	defer storage.CloseDatabase()
+
+	// Configure Swagger docs
+	docs.SwaggerInfo.BasePath = "/"
 
 	router := gin.Default()
 
@@ -118,6 +191,9 @@ func StartServer() {
 	router.POST("/accounts/:accountId/sessions/:sessionId", saveSession)
 	router.GET("/accounts/:accountId/sessions", getAllSession)
 	router.GET("/accounts/:accountId/sessions/:sessionId", getSession)
+
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	router.Run(serverAddr)
 }

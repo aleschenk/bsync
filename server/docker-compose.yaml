@@ -19,9 +19,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    networks:
-      - bsync-network
 
 networks:
-  bsync-network:
-    driver: bridge
+  default:
+    name: services

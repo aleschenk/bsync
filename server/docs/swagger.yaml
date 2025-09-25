@@ -1,0 +1,167 @@
+definitions:
+  main.HealthResponse:
+    properties:
+      service:
+        example: bsync-server
+        type: string
+      status:
+        example: healthy
+        type: string
+      timestamp:
+        example: "2024-01-20T19:30:45Z"
+        type: string
+      version:
+        example: 1.0.0
+        type: string
+    type: object
+  storage.Tab:
+    additionalProperties: true
+    type: object
+info:
+  contact: {}
+paths:
+  /accounts:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Create a new account with the given ID
+      parameters:
+      - description: Account ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: Account created successfully
+          schema:
+            type: string
+        "400":
+          description: Missing id parameter
+          schema:
+            type: string
+        "500":
+          description: Account could not be created
+          schema:
+            type: string
+      summary: Create new account
+      tags:
+      - accounts
+  /accounts/{accountId}/sessions:
+    get:
+      consumes:
+      - application/json
+      description: Get all sessions for a specific account
+      parameters:
+      - description: Account ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of session names
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Error fetching sessions
+          schema:
+            type: string
+      summary: Get all sessions
+      tags:
+      - sessions
+  /accounts/{accountId}/sessions/{sessionId}:
+    get:
+      consumes:
+      - application/json
+      description: Get a specific session for an account
+      parameters:
+      - description: Account ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      - description: Session ID
+        in: path
+        name: sessionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Session tabs
+          schema:
+            items:
+              $ref: '#/definitions/storage.Tab'
+            type: array
+        "500":
+          description: Error fetching session
+          schema:
+            type: string
+      summary: Get specific session
+      tags:
+      - sessions
+    post:
+      consumes:
+      - application/json
+      description: Save or update a session for a specific account
+      parameters:
+      - description: Account ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      - description: Session ID
+        in: path
+        name: sessionId
+        required: true
+        type: string
+      - description: Session data
+        in: body
+        name: session
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/storage.Tab'
+          type: array
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: Session saved successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid JSON data
+          schema:
+            type: string
+        "500":
+          description: Session could not be saved
+          schema:
+            type: string
+      summary: Save session
+      tags:
+      - sessions
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Get server health status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.HealthResponse'
+      summary: Health check
+      tags:
+      - health
+swagger: "2.0"
