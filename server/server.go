@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"bsync.com/m/v2/auth"
 	docs "bsync.com/m/v2/docs" // Import docs package
 	"bsync.com/m/v2/storage"
 	"github.com/gin-contrib/cors"
@@ -29,9 +30,11 @@ type HealthResponse struct {
 // @Tags accounts
 // @Accept application/x-www-form-urlencoded
 // @Produce plain
+// @Security BearerAuth
 // @Param id formData string true "Account ID"
 // @Success 201 {string} string "Account created successfully"
 // @Failure 400 {string} string "Missing id parameter"
+// @Failure 401 {string} string "Token de autorización requerido"
 // @Failure 500 {string} string "Account could not be created"
 // @Router /accounts [post]
 func newAccount(c *gin.Context) {
@@ -56,11 +59,14 @@ func newAccount(c *gin.Context) {
 // @Tags sessions
 // @Accept json
 // @Produce plain
+// @Security BearerAuth
 // @Param accountId path string true "Account ID"
 // @Param sessionId path string true "Session ID"
 // @Param session body []storage.Tab true "Session data"
 // @Success 201 {string} string "Session saved successfully"
 // @Failure 400 {string} string "Invalid JSON data"
+// @Failure 401 {string} string "Token de autorización requerido"
+// @Failure 403 {string} string "No tienes acceso a esta cuenta"
 // @Failure 500 {string} string "Session could not be saved"
 // @Router /accounts/{accountId}/sessions/{sessionId} [post]
 func saveSession(c *gin.Context) {
@@ -88,8 +94,11 @@ func saveSession(c *gin.Context) {
 // @Tags sessions
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param accountId path string true "Account ID"
 // @Success 200 {array} string "List of session names"
+// @Failure 401 {string} string "Token de autorización requerido"
+// @Failure 403 {string} string "No tienes acceso a esta cuenta"
 // @Failure 500 {string} string "Error fetching sessions"
 // @Router /accounts/{accountId}/sessions [get]
 func getAllSession(c *gin.Context) {
@@ -109,9 +118,12 @@ func getAllSession(c *gin.Context) {
 // @Tags sessions
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param accountId path string true "Account ID"
 // @Param sessionId path string true "Session ID"
 // @Success 200 {array} storage.Tab "Session tabs"
+// @Failure 401 {string} string "Token de autorización requerido"
+// @Failure 403 {string} string "No tienes acceso a esta cuenta"
 // @Failure 500 {string} string "Error fetching session"
 // @Router /accounts/{accountId}/sessions/{sessionId} [get]
 func getSession(c *gin.Context) {
@@ -154,6 +166,10 @@ func healthCheck(c *gin.Context) {
 // @license.url https://opensource.org/licenses/MIT
 // @host localhost:2544
 // @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Escriba "Bearer" seguido de un espacio y el token JWT. Ejemplo: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 func StartServer() {
 	var serverAddr, databasePath string
 
@@ -188,14 +204,18 @@ func StartServer() {
 		MaxAge: 1 * time.Hour,
 	}))
 
-	// Health check endpoint
+	// Health check endpoint (público)
 	router.GET("/health", healthCheck)
 
-	// API endpoints
-	router.POST("/accounts", newAccount)
-	router.POST("/accounts/:accountId/sessions/:sessionId", saveSession)
-	router.GET("/accounts/:accountId/sessions", getAllSession)
-	router.GET("/accounts/:accountId/sessions/:sessionId", getSession)
+	// Endpoints de autenticación (públicos)
+	router.POST("/auth/login", auth.LoginHandler(&store))
+	router.POST("/auth/refresh", auth.JWTMiddleware(), auth.RefreshTokenHandler())
+
+	// API endpoints protegidos
+	router.POST("/accounts", auth.JWTMiddleware(), newAccount)
+	router.POST("/accounts/:accountId/sessions/:sessionId", auth.JWTMiddleware(), auth.RequireAccountAccess(), saveSession)
+	router.GET("/accounts/:accountId/sessions", auth.JWTMiddleware(), auth.RequireAccountAccess(), getAllSession)
+	router.GET("/accounts/:accountId/sessions/:sessionId", auth.JWTMiddleware(), auth.RequireAccountAccess(), getSession)
 
 	// Swagger documentation
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
