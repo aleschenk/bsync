@@ -117,4 +117,6 @@ temp/
 *.sln
 *.sw?
 
+# Binaries
 server/bin/*
+bsync-server
