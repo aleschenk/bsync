@@ -26,6 +26,37 @@ func (fss *FileSystemStorage) CreateNewAccount(ID string) error {
 	return nil
 }
 
+func (fss *FileSystemStorage) GetAccount(ID string) (*Account, error) {
+	accountDir := fmt.Sprintf("%s/accounts/%s", rootPath, ID)
+
+	account := Account{ID: ID, CreatedAt: ""}
+
+	if stats, err := os.Stat(accountDir); err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	} else if !stats.IsDir() {
+		account.CreatedAt = stats.ModTime().Format(time.RFC3339)
+	}
+
+	return &Account{ID: ID, CreatedAt: ""}, nil
+}
+
+func (fss *FileSystemStorage) ExistsAccount(ID string) (bool, error) {
+	account, err := fss.GetAccount(ID)
+
+	if err != nil {
+		return false, err
+	}
+
+	if account != nil {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func sessionFilename(accountID, sessionID string) string {
 	// createAt := time.Now().Format(time.RFC3339)
 	return fmt.Sprintf("%s/accounts/%s/session_%s", rootPath, accountID, sessionID)

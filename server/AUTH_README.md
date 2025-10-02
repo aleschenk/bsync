@@ -2,21 +2,48 @@
 
 ## Descripción
 
-El servidor BSync ahora incluye autenticación basada en JWT (JSON Web Tokens) para proteger los endpoints de la API.
+El servidor BSync es un microservicio con API que incluye autenticación basada en JWT (JSON Web Tokens) para proteger los endpoints. El sistema de autenticación está simplificado en dos procesos:
+
+1. **Registro de Cuentas**: Crear nuevas cuentas para usar la API
+2. **Generación de Tokens**: Crear API tokens para acceder a los endpoints protegidos
+
+Este flujo simplificado es apropiado para un microservicio donde no hay concepto de "login" tradicional, solo registro de cuentas y generación de tokens para uso de la API.
+
+**Nota importante**: En un microservicio real, el endpoint `/auth/token` requeriría un mecanismo de autenticación previa (como un token temporal o credenciales) para generar el API token final. Este es un patrón común en microservicios donde la autenticación se maneja de forma separada.
 
 ## Endpoints de Autenticación
 
-### 1. Login
-**POST** `/auth/login`
+### 1. Registro de Cuenta
+**POST** `/auth/register`
 
-Autentica un usuario y retorna un JWT token.
+Registra una nueva cuenta para usar la API.
 
 **Request Body:**
 ```json
 {
   "account_id": "user123",
+  "user_id": "user456",
+  "password": "securepassword123"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Cuenta registrada exitosamente",
+  "account_id": "user123",
   "user_id": "user456"
 }
+```
+
+### 2. Generar API Token
+**POST** `/auth/token`
+
+Genera un nuevo API token para un usuario autenticado.
+
+**Headers:**
+```
+Authorization: Bearer <token>
 ```
 
 **Response:**
@@ -29,7 +56,7 @@ Autentica un usuario y retorna un JWT token.
 }
 ```
 
-### 2. Refresh Token
+### 3. Refresh Token
 **POST** `/auth/refresh`
 
 Refresca un JWT token existente.
@@ -80,14 +107,22 @@ export GIN_MODE="release"
 
 ## Uso con cURL
 
-### 1. Hacer Login
+### 1. Registrar Cuenta
 ```bash
-curl -X POST http://localhost:2544/auth/login \
+curl -X POST http://localhost:2544/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"account_id": "user123", "user_id": "user456"}'
+  -d '{"account_id": "user123", "user_id": "user456", "password": "securepassword123"}'
 ```
 
-### 2. Usar el Token
+### 2. Generar API Token
+```bash
+# Nota: En una implementación real, necesitarías un mecanismo para autenticarte
+# y obtener un token temporal para generar el API token
+curl -X POST http://localhost:2544/auth/token \
+  -H "Authorization: Bearer <temporary_token>"
+```
+
+### 3. Usar el Token
 ```bash
 # Guardar el token de la respuesta anterior
 TOKEN=""

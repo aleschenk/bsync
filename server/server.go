@@ -2,20 +2,57 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
 	"time"
 
-	"bsync.com/m/v2/auth"
+	"bsync.com/m/v2/api/accounts"
+	"bsync.com/m/v2/api/auth"
+	"bsync.com/m/v2/api/sessions"
 	docs "bsync.com/m/v2/docs" // Import docs package
 	"bsync.com/m/v2/storage"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var store storage.FileSystemStorage
+var logger *zap.Logger
+
+// setupLogger configura el logger de Zap
+func setupLogger() {
+	config := zap.NewProductionConfig()
+	config.EncoderConfig.TimeKey = "timestamp"
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	config.EncoderConfig.LevelKey = "level"
+	config.EncoderConfig.MessageKey = "message"
+	config.EncoderConfig.CallerKey = "caller"
+
+	var err error
+	logger, err = config.Build()
+	if err != nil {
+		panic("Failed to initialize logger: " + err.Error())
+	}
+
+	logger.Info("Logger initialized successfully")
+}
+
+// ginLoggerMiddleware es un middleware de logging para Gin usando Zap
+func ginLoggerMiddleware() gin.HandlerFunc {
+	return gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+		logger.Info("HTTP Request",
+			zap.String("method", param.Method),
+			zap.String("path", param.Path),
+			zap.Int("status", param.StatusCode),
+			zap.Duration("latency", param.Latency),
+			zap.String("client_ip", param.ClientIP),
+			zap.String("user_agent", param.Request.UserAgent()),
+		)
+		return ""
+	})
+}
 
 // HealthResponse represents the health check response
 type HealthResponse struct {
@@ -23,120 +60,6 @@ type HealthResponse struct {
 	Timestamp string `json:"timestamp" example:"2024-01-20T19:30:45Z"`
 	Service   string `json:"service" example:"bsync-server"`
 	Version   string `json:"version" example:"1.0.0"`
-}
-
-// @Summary Create new account
-// @Description Create a new account with the given ID
-// @Tags accounts
-// @Accept application/x-www-form-urlencoded
-// @Produce plain
-// @Security BearerAuth
-// @Param id formData string true "Account ID"
-// @Success 201 {string} string "Account created successfully"
-// @Failure 400 {string} string "Missing id parameter"
-// @Failure 401 {string} string "Token de autorización requerido"
-// @Failure 500 {string} string "Account could not be created"
-// @Router /accounts [post]
-func newAccount(c *gin.Context) {
-	accountId := c.PostForm("id")
-
-	if accountId == "" {
-		c.String(http.StatusBadRequest, "Missing id paramter")
-		return
-	}
-
-	if err := store.CreateNewAccount(accountId); err != nil {
-		c.String(http.StatusInternalServerError, "The account could not be created")
-		return
-	}
-
-	c.Header("Location", fmt.Sprintf("/accounts/%s", accountId))
-	c.String(http.StatusCreated, "", accountId)
-}
-
-// @Summary Save session
-// @Description Save or update a session for a specific account
-// @Tags sessions
-// @Accept json
-// @Produce plain
-// @Security BearerAuth
-// @Param accountId path string true "Account ID"
-// @Param sessionId path string true "Session ID"
-// @Param session body []storage.Tab true "Session data"
-// @Success 201 {string} string "Session saved successfully"
-// @Failure 400 {string} string "Invalid JSON data"
-// @Failure 401 {string} string "Token de autorización requerido"
-// @Failure 403 {string} string "No tienes acceso a esta cuenta"
-// @Failure 500 {string} string "Session could not be saved"
-// @Router /accounts/{accountId}/sessions/{sessionId} [post]
-func saveSession(c *gin.Context) {
-	accountId := c.Param("accountId")
-	sessionId := c.Param("sessionId")
-
-	var json []storage.Tab
-
-	if err := c.ShouldBindJSON(&json); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := store.SaveSession(accountId, sessionId, json); err != nil {
-		c.String(http.StatusInternalServerError, "The sessions %s for the account %s could not be created or updated", sessionId, accountId)
-		return
-	}
-
-	c.Header("Location", fmt.Sprintf("/accounts/%s/sessions/%s", accountId, sessionId))
-	c.String(http.StatusCreated, "", accountId)
-}
-
-// @Summary Get all sessions
-// @Description Get all sessions for a specific account
-// @Tags sessions
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param accountId path string true "Account ID"
-// @Success 200 {array} string "List of session names"
-// @Failure 401 {string} string "Token de autorización requerido"
-// @Failure 403 {string} string "No tienes acceso a esta cuenta"
-// @Failure 500 {string} string "Error fetching sessions"
-// @Router /accounts/{accountId}/sessions [get]
-func getAllSession(c *gin.Context) {
-	accountId := c.Param("accountId")
-
-	sessionsName, err := store.GetAllSessions(accountId)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error fetching account with id: %s", accountId)
-		return
-	}
-
-	c.JSON(http.StatusOK, sessionsName)
-}
-
-// @Summary Get specific session
-// @Description Get a specific session for an account
-// @Tags sessions
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param accountId path string true "Account ID"
-// @Param sessionId path string true "Session ID"
-// @Success 200 {array} storage.Tab "Session tabs"
-// @Failure 401 {string} string "Token de autorización requerido"
-// @Failure 403 {string} string "No tienes acceso a esta cuenta"
-// @Failure 500 {string} string "Error fetching session"
-// @Router /accounts/{accountId}/sessions/{sessionId} [get]
-func getSession(c *gin.Context) {
-	accountId := c.Param("accountId")
-	sessionId := c.Param("sessionId")
-
-	session, err := store.GetSession(accountId, sessionId)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "The sessions %s for the account %s could not be created or updated", sessionId, accountId)
-		return
-	}
-
-	c.JSON(http.StatusOK, session.Tabs)
 }
 
 // @Summary Health check
@@ -147,12 +70,17 @@ func getSession(c *gin.Context) {
 // @Success 200 {object} HealthResponse
 // @Router /health [get]
 func healthCheck(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
+	logger.Debug("Health check requested")
+
+	response := gin.H{
 		"status":    "healthy",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 		"service":   "bsync-server",
 		"version":   "1.0.0",
-	})
+	}
+
+	logger.Debug("Health check completed", zap.String("status", "healthy"))
+	c.JSON(http.StatusOK, response)
 }
 
 // @title BSync Server API
@@ -179,6 +107,10 @@ func StartServer() {
 	`)
 	flag.Parse()
 
+	// Initialize logger
+	setupLogger()
+	defer logger.Sync()
+
 	storage.InitDatabase(databasePath)
 	defer storage.CloseDatabase()
 
@@ -189,8 +121,9 @@ func StartServer() {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 
-	// Add only essential middleware
+	// Add middleware
 	router.Use(gin.Recovery())
+	router.Use(ginLoggerMiddleware())
 
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
@@ -208,17 +141,24 @@ func StartServer() {
 	router.GET("/health", healthCheck)
 
 	// Endpoints de autenticación (públicos)
-	router.POST("/auth/login", auth.LoginHandler(&store))
+	router.POST("/accounts", accounts.RegisterHandler(&store))
+
+	// Endpoints de tokens
+	router.POST("/auth/token", auth.GenerateTokenHandler(&store))
 	router.POST("/auth/refresh", auth.JWTMiddleware(), auth.RefreshTokenHandler())
 
-	// API endpoints protegidos
-	router.POST("/accounts", auth.JWTMiddleware(), newAccount)
-	router.POST("/accounts/:accountId/sessions/:sessionId", auth.JWTMiddleware(), auth.RequireAccountAccess(), saveSession)
-	router.GET("/accounts/:accountId/sessions", auth.JWTMiddleware(), auth.RequireAccountAccess(), getAllSession)
-	router.GET("/accounts/:accountId/sessions/:sessionId", auth.JWTMiddleware(), auth.RequireAccountAccess(), getSession)
+	router.POST("/sessions/:sessionId", auth.JWTMiddleware(), auth.RequireAccountAccess(), sessions.SaveSession(&store))
+	router.GET("/sessions", auth.JWTMiddleware(), auth.RequireAccountAccess(), sessions.GetAllSessions(&store))
+	router.GET("/sessions/:sessionId", auth.JWTMiddleware(), auth.RequireAccountAccess(), sessions.GetSession(&store))
 
 	// Swagger documentation
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
+	logger.Info("BSync server starting",
+		zap.String("address", serverAddr),
+		zap.String("database_path", databasePath),
+	)
+
+	logger.Info("Server routes configured successfully")
 	router.Run(serverAddr)
 }

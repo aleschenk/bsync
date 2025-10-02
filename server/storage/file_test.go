@@ -7,7 +7,20 @@ import (
 
 func TestCreateNewAccount(t *testing.T) {
 	store := FileSystemStorage{}
-	store.CreateNewAccount("test")
+	if err := store.CreateNewAccount("test"); err != nil {
+		t.Error(err)
+		return
+	}
+
+	account, err := store.GetAccount("test")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if account.ID != "test" {
+		t.Error("Expected test, got ", account.ID)
+	}
 }
 
 func TestSaveSession(t *testing.T) {

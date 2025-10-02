@@ -66,6 +66,22 @@ func CreateNewAccount(ID string) error {
 	return nil
 }
 
+//func GetAccount(ID string) error {
+//	createdAt := time.Now().Format(time.RFC3339)
+//
+//	account := Account{
+//		ID:        ID,
+//		CreatedAt: createdAt,
+//	}
+//
+//	doc, err := gdb.QueryDocument("SELECT * FROM accounts WHERE account_id = ? AND session_id = ?", accountID, sessionID)
+//	if genji.IsNotFoundError(err) {
+//		return nil, nil
+//	}
+//
+//	return nil
+//}
+
 func GetSession(accountID, sessionID string) (*Session, error) {
 	doc, err := gdb.QueryDocument("SELECT * FROM sessions WHERE account_id = ? AND session_id = ?", accountID, sessionID)
 	if genji.IsNotFoundError(err) {
