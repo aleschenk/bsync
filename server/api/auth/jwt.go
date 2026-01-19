@@ -12,7 +12,6 @@ import (
 // JWTClaims representa los claims del JWT
 type JWTClaims struct {
 	AccountID string `json:"account_id"`
-	UserID    string `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
@@ -34,10 +33,9 @@ func getJWTSecret() string {
 }
 
 // GenerateToken genera un nuevo JWT token para un usuario
-func GenerateToken(accountID, userID string) (string, error) {
+func GenerateToken(accountID string) (string, error) {
 	claims := JWTClaims{
 		AccountID: accountID,
-		UserID:    userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(JWTExpirationTime)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

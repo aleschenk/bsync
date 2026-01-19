@@ -19,6 +19,9 @@ import (
 )
 
 var store storage.FileSystemStorage
+
+// var authMiddleware = auth.JWTMiddleware()
+var authMiddleware = auth.BasicMiddleware(&store)
 var logger *zap.Logger
 
 // setupLogger configura el logger de Zap
@@ -141,15 +144,18 @@ func StartServer() {
 	router.GET("/health", healthCheck)
 
 	// Endpoints de autenticación (públicos)
-	router.POST("/accounts", accounts.RegisterHandler(&store))
+	router.POST("/accounts", accounts.CreateNewAccountHandler(&store))
+
+	// This API should not be public
+	//router.GET("/accounts", accounts.GetAllAccounts(&store))
 
 	// Endpoints de tokens
-	router.POST("/auth/token", auth.GenerateTokenHandler(&store))
-	router.POST("/auth/refresh", auth.JWTMiddleware(), auth.RefreshTokenHandler())
+	//router.POST("/auth/token", auth.GenerateTokenHandler(&store))
+	//router.POST("/auth/refresh", authMiddleware, auth.RefreshTokenHandler())
 
-	router.POST("/sessions/:sessionId", auth.JWTMiddleware(), auth.RequireAccountAccess(), sessions.SaveSession(&store))
-	router.GET("/sessions", auth.JWTMiddleware(), auth.RequireAccountAccess(), sessions.GetAllSessions(&store))
-	router.GET("/sessions/:sessionId", auth.JWTMiddleware(), auth.RequireAccountAccess(), sessions.GetSession(&store))
+	router.POST("/sessions", authMiddleware, sessions.SaveSession(&store))
+	router.GET("/sessions", authMiddleware, sessions.GetAllSessions(&store))
+	router.GET("/sessions/:sessionId", authMiddleware, sessions.GetSession(&store))
 
 	// Swagger documentation
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))

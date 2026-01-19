@@ -3,10 +3,45 @@ package auth
 import (
 	"net/http"
 
+	"bsync.com/m/v2/storage"
 	"github.com/gin-gonic/gin"
 )
 
-// JWTMiddleware es el middleware de autenticación JWT
+// BasicMiddleware es el middleware de autenticación basica
+func BasicMiddleware(store storage.Storage) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		username, password, _ := c.Request.BasicAuth()
+		if username == "" || password == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid Credentials",
+			})
+			c.Abort()
+			return
+		}
+
+		account, err := store.GetAccount(username)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+			c.Abort()
+			return
+		}
+
+		if account.ID != username || account.Password != password {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Unauthorized",
+			})
+			c.Abort()
+			return
+		}
+
+		c.Set("accountId", account.ID)
+		c.Next()
+	}
+}
+
+// JWTMiddleware es el middleware de autenticación jwt
 func JWTMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Obtener el token del header Authorization
@@ -34,7 +69,6 @@ func JWTMiddleware() gin.HandlerFunc {
 
 		// Agregar los claims al contexto para uso posterior
 		c.Set("account_id", claims.AccountID)
-		c.Set("user_id", claims.UserID)
 		c.Set("jwt_claims", claims)
 
 		// Continuar con el siguiente handler

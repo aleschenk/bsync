@@ -13,7 +13,6 @@ type TokenResponse struct {
 	Token     string    `json:"token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 	ExpiresAt time.Time `json:"expires_at" example:"2024-01-21T19:30:45Z"`
 	AccountID string    `json:"account_id" example:"user123"`
-	UserID    string    `json:"user_id" example:"user456"`
 }
 
 // @Summary Generate API Token with Basic Auth
@@ -28,59 +27,7 @@ type TokenResponse struct {
 // @Router /auth/token [post]
 func GenerateTokenHandler(store storage.Storage) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Obtener el header Authorization
-
-		//authHeader := c.GetHeader("Authorization")
-		//if authHeader == "" {
-		//	c.JSON(http.StatusUnauthorized, gin.H{
-		//		"error": "Authorization header requerido",
-		//	})
-		//	return
-		//}
-		//
-		//// Verificar que sea Basic Authentication
-		//if !strings.HasPrefix(authHeader, "Basic ") {
-		//	c.JSON(http.StatusUnauthorized, gin.H{
-		//		"error": "Se requiere Basic Authentication",
-		//	})
-		//	return
-		//}
-		//
-		//// Decodificar las credenciales
-		//encoded := strings.TrimPrefix(authHeader, "Basic ")
-		//decoded, err := base64.StdEncoding.DecodeString(encoded)
-		//if err != nil {
-		//	c.JSON(http.StatusUnauthorized, gin.H{
-		//		"error": "Credenciales inválidas",
-		//	})
-		//	return
-		//}
-		//
-		//// Separar usuario y contraseña
-		//credentials := strings.SplitN(string(decoded), ":", 2)
-		//if len(credentials) != 2 {
-		//	c.JSON(http.StatusUnauthorized, gin.H{
-		//		"error": "Formato de credenciales inválido",
-		//	})
-		//	return
-		//}
-		//
-		//accountID := credentials[0]
-		//password := credentials[1]
-
-		// Verificar que la cuenta existe
-		//_, err = store.GetAllSessions(accountID)
-		//if err != nil {
-		//	c.JSON(http.StatusUnauthorized, gin.H{
-		//		"error": "Credenciales inválidas",
-		//	})
-		//	return
-		//}
-		//
-		//// TODO: En una implementación real, aquí verificarías la contraseña
-		//// Por ahora, solo verificamos que la cuenta existe
-		//_ = password
-		username, password, _ := c.Request.BasicAuth()
+		username, _, _ := c.Request.BasicAuth()
 		existsAccount, err := store.ExistsAccount(username)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -97,7 +44,7 @@ func GenerateTokenHandler(store storage.Storage) gin.HandlerFunc {
 		}
 
 		// Generar token
-		token, err := GenerateToken(username, password)
+		token, err := GenerateToken(username)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Error generando token",
@@ -114,7 +61,6 @@ func GenerateTokenHandler(store storage.Storage) gin.HandlerFunc {
 			Token:     token,
 			ExpiresAt: expiresAt,
 			AccountID: "",
-			UserID:    "",
 		})
 	}
 }
@@ -143,7 +89,7 @@ func RefreshTokenHandler() gin.HandlerFunc {
 		jwtClaims := claims.(*JWTClaims)
 
 		// Generar nuevo token
-		token, err := GenerateToken(jwtClaims.AccountID, jwtClaims.UserID)
+		token, err := GenerateToken(jwtClaims.AccountID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Error generando token",
@@ -160,7 +106,6 @@ func RefreshTokenHandler() gin.HandlerFunc {
 			Token:     token,
 			ExpiresAt: expiresAt,
 			AccountID: jwtClaims.AccountID,
-			UserID:    jwtClaims.UserID,
 		})
 	}
 }

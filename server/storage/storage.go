@@ -4,19 +4,22 @@ type Tab map[string]interface{}
 
 type Account struct {
 	ID        string `genji:"id"`
+	Password  string `genji:"password"`
 	CreatedAt string `genji:"created_at"`
 }
 
 type Session struct {
 	AccountID  string `genji:"account_id json:accountId"`
 	SessionID  string `genji:"session_id json:sessionId"`
+	Name       string `genji:"name json:name"`
 	CreatedAt  string `genji:"created_at json:createdAt"`
 	ModifiedAt string `genji:"modified_at json:modifiedAt"`
 	Tabs       []Tab  `genji:"tabs json:tabs"`
 }
 
 type Storage interface {
-	CreateNewAccount(ID string) error
+	CreateNewAccount(account Account) error
+	GetAllAccounts() ([]Account, error)
 	GetAccount(ID string) (*Account, error)
 	ExistsAccount(ID string) (bool, error)
 	GetAllSessions(accountID string) ([]string, error)
